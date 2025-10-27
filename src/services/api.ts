@@ -1193,6 +1193,98 @@ export const tenantService = {
   },
 };
 
+const resolveStoredTenantId = (): string | null => {
+  try {
+    const storage: Storage | null =
+      typeof window !== 'undefined' && window.localStorage
+        ? window.localStorage
+        : typeof globalThis !== 'undefined' && 'localStorage' in globalThis
+          ? (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage ?? null
+          : null;
+
+    if (!storage) {
+      return null;
+    }
+
+    const raw = storage.getItem('tenant');
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && typeof (parsed as Record<string, unknown>).id === 'string') {
+      return (parsed as Record<string, unknown>).id as string;
+    }
+  } catch {
+    // Ignore malformed storage values or unavailable storage environments
+  }
+
+  return null;
+};
+
+const attachTenantIdToContact = (contact: unknown, tenantId: string): unknown => {
+  if (!contact || typeof contact !== 'object') {
+    return contact;
+  }
+
+  const record = contact as Record<string, unknown>;
+  if ('tenant_id' in record || 'tenantId' in record) {
+    return contact;
+  }
+
+  return {
+    tenant_id: tenantId,
+    ...record,
+  };
+};
+
+const ensureTenantIdOnCollection = (data: unknown, tenantId: string | null): unknown => {
+  if (!tenantId) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => attachTenantIdToContact(item, tenantId));
+  }
+
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...record };
+
+    if (Array.isArray(record.contacts)) {
+      next.contacts = record.contacts.map(item => attachTenantIdToContact(item, tenantId));
+    }
+
+    if (Array.isArray(record.data)) {
+      next.data = record.data.map(item => attachTenantIdToContact(item, tenantId));
+    }
+
+    return next;
+  }
+
+  return data;
+};
+
+const extractContactsCollection = (data: unknown): unknown[] | null => {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+
+    if (Array.isArray(record.contacts)) {
+      return record.contacts;
+    }
+
+    if (Array.isArray(record.data)) {
+      return record.data;
+    }
+  }
+
+  return null;
+};
+
 /**
  * Address Book / Contact Management Service
  *
@@ -1254,21 +1346,26 @@ export const addressBookService = {
       .get<Record<string, unknown>>(query ? `/address-book?${query}` : '/address-book')
       .andThen(response => {
         if (response.status === 'success') {
+          const tenantId = resolveStoredTenantId();
+          const dataWithTenant = ensureTenantIdOnCollection(response.data, tenantId);
+          const contactsCollection = extractContactsCollection(dataWithTenant);
+          const collectionLength = contactsCollection?.length ?? 0;
+
           // The HTTP client has already processed the response and extracted body.data as response.data
           // contactListFromApiResponse expects { data: [...], message: "ok", metadata: {...} }
           // So we need to reconstruct this format
           const fullResponse = {
-            data: response.data, // This is already the contacts array from body.data
+            data: dataWithTenant, // Ensure contacts include tenant context when missing
             message: response.message || 'ok',
             // The metadata should come from the original response, but since it's not preserved,
             // we'll create default metadata
             metadata: {
-              count: Array.isArray(response.data) ? response.data.length : 0,
+              count: collectionLength,
               current_cursor: 0,
               has_more: false,
               next_cursor: null,
-              page_size: params?.limit || 10,
-              total_elements: Array.isArray(response.data) ? response.data.length : 0,
+              page_size: params?.limit ?? (collectionLength || 10),
+              total_elements: collectionLength,
             }
           };
 
