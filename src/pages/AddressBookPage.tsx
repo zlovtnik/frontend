@@ -167,6 +167,8 @@ export const AddressBookPage: React.FC = () => {
     total: 0,
   });
 
+  const { current: currentPage, pageSize: currentPageSize } = paginationState;
+
   // Sorting state
   const [sorting, setSorting] = useState<{
     field: string;
@@ -263,8 +265,8 @@ export const AddressBookPage: React.FC = () => {
 
     // Load with current search term and pagination
     const result = await addressBookService.getAll({
-      page: paginationState.current,
-      limit: paginationState.pageSize,
+      page: currentPage,
+      limit: currentPageSize,
       search: searchTerm || undefined
     });
 
@@ -297,13 +299,25 @@ export const AddressBookPage: React.FC = () => {
     const records = Array.isArray(data?.contacts) ? data.contacts : [];
     const transformedContacts = records.map(personToContact);
     setContacts(transformedContacts);
-    setPaginationState({
-      current: data.page || 1,
-      pageSize: data.limit || 10,
-      total: data.total || 0,
+    setPaginationState(prev => {
+      const next = {
+        current: data.page || 1,
+        pageSize: data.limit || 10,
+        total: data.total || 0,
+      };
+
+      if (
+        prev.current === next.current &&
+        prev.pageSize === next.pageSize &&
+        prev.total === next.total
+      ) {
+        return prev;
+      }
+
+      return next;
     });
     setLoading(false);
-  }, [message, tenant, personToContact, paginationState, searchTerm]);
+  }, [message, tenant, personToContact, currentPage, currentPageSize, searchTerm]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -568,10 +582,22 @@ export const AddressBookPage: React.FC = () => {
     const records = Array.isArray(data?.contacts) ? data.contacts : [];
     const transformedContacts = records.map(personToContact);
     setContacts(transformedContacts);
-    setPaginationState({
-      current: data.page || 1,
-      pageSize: data.limit || 10,
-      total: data.total || 0,
+    setPaginationState(prev => {
+      const next = {
+        current: data.page || 1,
+        pageSize: data.limit || 10,
+        total: data.total || 0,
+      };
+
+      if (
+        prev.current === next.current &&
+        prev.pageSize === next.pageSize &&
+        prev.total === next.total
+      ) {
+        return prev;
+      }
+
+      return next;
     });
     setLoading(false);
   };

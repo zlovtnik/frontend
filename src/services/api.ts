@@ -1212,8 +1212,18 @@ const resolveStoredTenantId = (): string | null => {
     }
 
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && typeof (parsed as Record<string, unknown>).id === 'string') {
-      return (parsed as Record<string, unknown>).id as string;
+    if (parsed && typeof parsed === 'object') {
+      const record = parsed as Record<string, unknown>;
+      const tenantIdValue = record.id;
+
+      if (typeof tenantIdValue === 'string') {
+        const trimmed = tenantIdValue.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      }
+
+      if (typeof tenantIdValue === 'number' && Number.isFinite(tenantIdValue)) {
+        return String(tenantIdValue);
+      }
     }
   } catch {
     // Ignore malformed storage values or unavailable storage environments
