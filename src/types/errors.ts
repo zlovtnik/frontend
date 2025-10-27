@@ -73,6 +73,30 @@ export type AppError =
   | ServerError
   | TenantError;
 
+export const isValidationError = (error: AppError): error is TypedValidationError =>
+  error.type === API_ERROR_TYPES.Validation;
+
+export const isNetworkError = (error: AppError): error is NetworkError =>
+  error.type === API_ERROR_TYPES.Network;
+
+export const isTimeoutError = (error: AppError): error is TimeoutError =>
+  error.type === API_ERROR_TYPES.Timeout;
+
+export const isAuthError = (error: AppError): error is AuthError =>
+  error.type === API_ERROR_TYPES.Authentication;
+
+export const isForbiddenError = (error: AppError): error is ForbiddenError =>
+  error.type === API_ERROR_TYPES.Authorization;
+
+export const isNotFoundError = (error: AppError): error is NotFoundError =>
+  error.type === API_ERROR_TYPES.NotFound;
+
+export const isServerError = (error: AppError): error is ServerError =>
+  error.type === API_ERROR_TYPES.Server;
+
+export const isTenantError = (error: AppError): error is TenantError =>
+  error.type === API_ERROR_TYPES.Tenant;
+
 interface ErrorFactoryOptions {
   code?: string;
   cause?: unknown;
@@ -103,14 +127,20 @@ export const createValidationError = (
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): TypedValidationError =>
-  createBaseError(API_ERROR_TYPES.Validation, message, details, options) as TypedValidationError;
+  createBaseError(API_ERROR_TYPES.Validation, message, details, {
+    ...options,
+    retryable: options?.retryable ?? false,
+  }) as TypedValidationError;
 
 export const createNetworkError = (
   message: string,
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): NetworkError =>
-  createBaseError(API_ERROR_TYPES.Network, message, details, options) as NetworkError;
+  createBaseError(API_ERROR_TYPES.Network, message, details, {
+    ...options,
+    retryable: options?.retryable ?? true,
+  }) as NetworkError;
 
 export const createTimeoutError = (
   message: string,
@@ -127,38 +157,53 @@ export const createAuthError = (
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): AuthError =>
-  createBaseError(API_ERROR_TYPES.Authentication, message, details, options) as AuthError;
+  createBaseError(API_ERROR_TYPES.Authentication, message, details, {
+    ...options,
+    retryable: options?.retryable ?? false,
+  }) as AuthError;
 
 export const createForbiddenError = (
   message: string,
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): ForbiddenError =>
-  createBaseError(API_ERROR_TYPES.Authorization, message, details, options) as ForbiddenError;
+  createBaseError(API_ERROR_TYPES.Authorization, message, details, {
+    ...options,
+    retryable: options?.retryable ?? false,
+  }) as ForbiddenError;
 
 export const createNotFoundError = (
   message: string,
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): NotFoundError =>
-  createBaseError(API_ERROR_TYPES.NotFound, message, details, options) as NotFoundError;
+  createBaseError(API_ERROR_TYPES.NotFound, message, details, {
+    ...options,
+    retryable: options?.retryable ?? false,
+  }) as NotFoundError;
 
 export const createServerError = (
   message: string,
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): ServerError =>
-  createBaseError(API_ERROR_TYPES.Server, message, details, options) as ServerError;
+  createBaseError(API_ERROR_TYPES.Server, message, details, {
+    ...options,
+    retryable: options?.retryable ?? true,
+  }) as ServerError;
 
 export const createTenantError = (
   message: string,
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
 ): TenantError =>
-  createBaseError(API_ERROR_TYPES.Tenant, message, details, options) as TenantError;
+  createBaseError(API_ERROR_TYPES.Tenant, message, details, {
+    ...options,
+    retryable: options?.retryable ?? false,
+  }) as TenantError;
 
 /**
- * @deprecated Use createServerError instead.
+ * @deprecated Use createServerError instead. Will be removed in v2.0.0.
  */
 export const createBusinessLogicError = (
   message: string,
