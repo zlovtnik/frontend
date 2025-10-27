@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authService } from '../services/api';
-import type { User, Tenant, LoginCredentials } from '../types/auth';
+import type { User, Tenant, LoginCredentials, RegisterData, PasswordResetConfirm } from '../types/auth';
 import { asTenantId, asUserId } from '../types/ids';
 
 export interface AuthContextType {
@@ -12,6 +12,9 @@ export interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ isSuccess: boolean; message: string }>;
+  confirmPasswordReset: (data: PasswordResetConfirm) => Promise<{ isSuccess: boolean; message: string }>;
   // JWT Authentication Integration with backend API
   // - Real authentication endpoints integration with existing Actix Web backend
   // - JWT token storage and automatic Authorization header inclusion
@@ -43,7 +46,6 @@ const decodeJwtPayload = (token: string): JwtPayload | null => {
 
     return payload;
   } catch (error) {
-    console.warn('Failed to decode JWT:', error);
     return null;
   }
 };
@@ -56,43 +58,34 @@ const attemptTokenRefresh = async (
 ): Promise<{ user: User; tenant: Tenant; token: string } | null> => {
   try {
     if (signal?.aborted) {
-      console.log('Token refresh cancelled');
       return null;
     }
 
     const refreshResult = await authService.refreshToken();
     if (refreshResult.isErr()) {
-      console.error('Token refresh failed during initialization:', refreshResult.error);
       return null;
     }
 
     const refreshedAuth = refreshResult.value;
     if (!refreshedAuth.success) {
-      console.error('Token refresh response did not indicate success');
       return null;
     }
 
     const newToken = refreshedAuth.token;
     if (!newToken) {
-      console.error('No token received from refresh');
       return null;
     }
 
     if (signal?.aborted) {
-      console.log('Token refresh cancelled after API call');
       return null;
     }
 
     const newPayload = decodeJwtPayload(newToken);
     if (!newPayload || typeof newPayload !== 'object') {
-      console.error('Failed to decode refreshed JWT token');
       return null;
     }
 
     if (!newPayload.user?.trim() || !newPayload.tenant_id?.trim()) {
-      console.error(
-        'JWT payload validation failed: missing or invalid user/tenant_id in refreshed token'
-      );
       return null;
     }
 
@@ -127,7 +120,7 @@ const attemptTokenRefresh = async (
           typeof parsedUser.username === 'string' &&
           parsedUser.username.trim() !== '' &&
           Array.isArray(parsedUser.roles) &&
-          parsedUser.roles.every((role: any) => typeof role === 'string')
+          parsedUser.roles.every(role => typeof role === 'string')
         ) {
           refreshedUser = {
             ...parsedUser,
@@ -137,7 +130,6 @@ const attemptTokenRefresh = async (
           };
         }
       } catch (parseError) {
-        console.warn('Failed to parse stored user data:', parseError);
       }
     }
 
@@ -160,22 +152,18 @@ const attemptTokenRefresh = async (
           } as Tenant;
         }
       } catch (parseError) {
-        console.warn('Failed to parse stored tenant data:', parseError);
       }
     }
 
     if (refreshedUser && refreshedTenant) {
       return { user: refreshedUser, tenant: refreshedTenant, token: newToken };
     } else {
-      console.warn('Stored user/tenant data validation failed after token refresh');
       return null;
     }
   } catch (refreshError) {
     if (signal?.aborted) {
-      console.warn('Token refresh cancelled due to abort');
       return null;
     }
-    console.warn('Token refresh failed:', refreshError);
     return null;
   }
 };
@@ -292,17 +280,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   setUser(parsedUser);
                   setTenant(parsedTenant);
                 }
-              } else {
-                console.warn('Token payload mismatch with stored data, clearing authentication');
-                if (!abortController.signal.aborted) {
-                  localStorage.removeItem('auth_token');
-                  localStorage.removeItem('user');
-                  localStorage.removeItem('tenant');
-                }
+              } else if (!abortController.signal.aborted) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('tenant');
               }
             } else {
               // Invalid data structure, clear stored data
-              console.warn('Invalid stored user/tenant data structure');
               if (!abortController.signal.aborted) {
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
@@ -317,7 +301,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user');
           localStorage.removeItem('tenant');
-          console.error('Authentication initialization failed:', error);
         }
       } finally {
         if (isMountedRef.current && !abortController.signal.aborted) {
@@ -392,7 +375,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('tenant');
 
-      console.error('Login request failed:', error);
 
       // Re-throw with the actual error message from the server
       if (error instanceof Error) {
@@ -410,12 +392,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const logoutResult = await authService.logout();
 
       if (logoutResult.isErr()) {
-        console.error('Server-side logout failed, clearing local data anyway:', logoutResult.error);
       } else {
-        console.log('Server-side logout successful');
       }
     } catch (error) {
-      console.error('Server-side logout failed, clearing local data anyway:', error);
     } finally {
       // Always clear local data regardless of API call success
       setUser(null);
@@ -434,19 +413,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const error = refreshResult.error;
 
         if (error.statusCode === 401 || error.statusCode === 403) {
-          console.error('Authentication failed during refresh, logging out');
           await logout();
           throw new Error('Authentication expired');
         }
 
-        console.error('Token refresh failed due to transient error:', error);
         throw new Error('Token refresh failed - please check your connection');
       }
 
       const refreshResponse = refreshResult.value;
 
       if (!refreshResponse.success) {
-        console.error('Token refresh failed due to API response:', refreshResponse.message);
         throw new Error(refreshResponse.message || 'Token refresh failed');
       }
 
@@ -478,21 +454,160 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setTenant(updatedTenant);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       localStorage.setItem('tenant', JSON.stringify(updatedTenant));
-      console.log('Token refresh successful');
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === 'Authentication expired') {
           throw error;
         }
 
-        console.error('Token refresh failed:', error);
         throw error;
       }
 
-      console.error('Token refresh failed due to unknown error:', error);
       throw new Error('Token refresh failed');
     }
   };
+
+  const register = async (data: RegisterData): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const registerResult = await authService.register(data);
+
+      if (registerResult.isErr()) {
+        throw new Error(registerResult.error.message || 'Registration failed');
+      }
+
+      const authPayload = registerResult.value;
+
+      if (!authPayload.success) {
+        throw new Error(authPayload.message ?? 'Registration failed');
+      }
+
+      const token = authPayload.token;
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+
+      localStorage.setItem('auth_token', JSON.stringify({ token }));
+
+      const tokenPayload = decodeJwtPayload(token);
+      if (!tokenPayload) {
+        throw new Error('Invalid token format');
+      }
+
+      if (!tokenPayload.user || !tokenPayload.tenant_id) {
+        throw new Error('Required fields missing in token');
+      }
+
+      const tenantIdentifier = asTenantId(tokenPayload.tenant_id);
+
+      const user: User = {
+        ...authPayload.user,
+        username: tokenPayload.user,
+        tenantId: tenantIdentifier,
+      };
+
+      const tenant: Tenant = {
+        ...authPayload.tenant,
+        id: tenantIdentifier,
+      };
+
+      setUser(user);
+      setTenant(tenant);
+
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('tenant', JSON.stringify(tenant));
+    } catch (error: unknown) {
+      // Clear any partial data
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('tenant');
+
+
+      // Re-throw with the actual error message from the server
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new Error('Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const requestPasswordReset = async (email: string): Promise<{ isSuccess: boolean; message: string }> => {
+    setIsLoading(true);
+    try {
+      const resetResult = await authService.requestPasswordReset(email);
+
+      if (resetResult.isErr()) {
+        throw new Error(resetResult.error.message || 'Password reset request failed');
+      }
+
+      const response = resetResult.value;
+
+      if (response.status === 'error') {
+        throw new Error(response.error.message || 'Password reset request failed');
+      }
+
+      return {
+        isSuccess: true,
+        message: response.message ?? 'Password reset email sent successfully'
+      };
+    } catch (error: unknown) {
+
+      if (error instanceof Error) {
+        return {
+          isSuccess: false,
+          message: error.message
+        };
+      }
+
+      return {
+        isSuccess: false,
+        message: 'Password reset request failed'
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmPasswordReset = async (data: PasswordResetConfirm): Promise<{ isSuccess: boolean; message: string }> => {
+    setIsLoading(true);
+    try {
+      const resetResult = await authService.confirmPasswordReset(data);
+
+      if (resetResult.isErr()) {
+        throw new Error(resetResult.error.message || 'Password reset confirmation failed');
+      }
+
+      const response = resetResult.value;
+
+      if (response.status === 'error') {
+        throw new Error(response.error.message || 'Password reset confirmation failed');
+      }
+
+      return {
+        isSuccess: true,
+        message: response.message ?? 'Password reset successfully completed'
+      };
+    } catch (error: unknown) {
+
+      if (error instanceof Error) {
+        return {
+          isSuccess: false,
+          message: error.message
+        };
+      }
+
+      return {
+        isSuccess: false,
+        message: 'Password reset confirmation failed'
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const value: AuthContextType = {
     user,
@@ -502,6 +617,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     refreshToken,
+    register,
+    requestPasswordReset,
+    confirmPasswordReset,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

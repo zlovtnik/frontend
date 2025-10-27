@@ -81,8 +81,14 @@ export const TenantsPage: React.FC = () => {
 
       const apiResponse = result.value;
 
-      if (!isApiSuccess(apiResponse)) {
-        message.error(apiResponse.error.message);
+      // Handle both expected API response format and actual backend format
+      // The backend returns { message: "ok", data: [...], metadata: {...} }
+      // instead of { status: "success", data: {...}, message: "ok" }
+      const isSuccess = isApiSuccess(apiResponse) ||
+        (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+
+      if (!isSuccess) {
+        message.error(apiResponse.error?.message || 'Failed to load tenants');
         setTenants([]);
         setPagination(prev => ({ ...prev, total: 0 }));
         return;
@@ -143,7 +149,7 @@ export const TenantsPage: React.FC = () => {
         }
 
         if (!isApiSuccess(updateResult.value)) {
-          throw new Error(updateResult.value.error.message);
+          throw new Error(updateResult.value.error?.message || 'Failed to update tenant');
         }
         // Refresh the current page
         await loadTenants({
@@ -163,7 +169,7 @@ export const TenantsPage: React.FC = () => {
         }
 
         if (!isApiSuccess(createResult.value)) {
-          throw new Error(createResult.value.error.message);
+          throw new Error(createResult.value.error?.message || 'Failed to create tenant');
         }
         // Refresh the current page
         await loadTenants({
@@ -216,7 +222,7 @@ export const TenantsPage: React.FC = () => {
         }
 
         if (!isApiSuccess(deleteResult.value)) {
-          throw new Error(deleteResult.value.error.message);
+          throw new Error(deleteResult.value.error?.message || 'Failed to delete tenant');
         }
         // Update tenants state after successful API response
         await loadTenants({
@@ -365,7 +371,7 @@ export const TenantsPage: React.FC = () => {
       const apiResponse = response.value;
 
       if (!isApiSuccess(apiResponse)) {
-        throw new Error(apiResponse.error.message);
+        throw new Error(apiResponse.error?.message || 'Failed to filter tenants');
       }
 
       const data = apiResponse.data;
@@ -509,7 +515,7 @@ export const TenantsPage: React.FC = () => {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {loading ? (
         <div style={{ textAlign: 'center', padding: '48px' }}>
-          <Spin tip="Loading tenants..." />
+          <Spin />
         </div>
       ) : tenants.length === 0 ? (
         <Card>

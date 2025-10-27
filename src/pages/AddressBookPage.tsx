@@ -261,7 +261,12 @@ export const AddressBookPage: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const result = await addressBookService.getAll();
+    // Load with current search term and pagination
+    const result = await addressBookService.getAll({
+      page: paginationState.current,
+      limit: paginationState.pageSize,
+      search: searchTerm || undefined
+    });
 
     if (result.isErr()) {
       const errorMessage = 'Failed to load contacts';
@@ -273,8 +278,14 @@ export const AddressBookPage: React.FC = () => {
 
     const apiResponse = result.value;
 
-    if (!isApiSuccess(apiResponse)) {
-      const errorMessage = apiResponse.error.message || 'Failed to load contacts';
+    // Handle both expected API response format and actual backend format
+    // The backend returns { message: "ok", data: [...], metadata: {...} }
+    // instead of { status: "success", data: {...}, message: "ok" }
+    const isSuccess = isApiSuccess(apiResponse) ||
+      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+
+    if (!isSuccess) {
+      const errorMessage = apiResponse.error?.message || 'Failed to load contacts';
       setError(errorMessage);
       message.error(errorMessage);
       setLoading(false);
@@ -291,7 +302,7 @@ export const AddressBookPage: React.FC = () => {
       total: data.total || 0,
     });
     setLoading(false);
-  }, [message, tenant, personToContact]);
+  }, [message, tenant, personToContact, paginationState, searchTerm]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -300,20 +311,8 @@ export const AddressBookPage: React.FC = () => {
     loadData();
   }, [loadContacts]);
 
-  // Filter contacts based on search term
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredContacts = useMemo(() => {
-    if (!normalizedSearch) {
-      return contacts;
-    }
-
-    return contacts.filter(contact => {
-      const matchesName = contact.fullName?.toLowerCase().includes(normalizedSearch);
-      const matchesEmail = contact.email?.toLowerCase().includes(normalizedSearch);
-      const matchesPhone = contact.phone?.includes(normalizedSearch);
-      return Boolean(matchesName || matchesEmail || matchesPhone);
-    });
-  }, [contacts, normalizedSearch]);
+  // Use all contacts since filtering is now done on the backend
+  const filteredContacts = contacts;
 
   // Handle form submission
   const handleSubmit = async (values: AddressFormValues) => {
@@ -338,7 +337,13 @@ export const AddressBookPage: React.FC = () => {
 
     const apiResponse = result.value;
 
-    if (!isApiSuccess(apiResponse)) {
+    // Handle both expected API response format and actual backend format
+    // The backend returns { message: "ok", data: {...} } for success
+    // instead of { status: "success", data: {...}, message: "ok" }
+    const isSuccess = isApiSuccess(apiResponse) ||
+      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+
+    if (!isSuccess) {
       const errorMessage = 'Operation Failed';
       setFormError(errorMessage);
       setOperationError(errorMessage);
@@ -402,7 +407,13 @@ export const AddressBookPage: React.FC = () => {
 
       const apiResponse = result.value;
 
-      if (!isApiSuccess(apiResponse)) {
+      // Handle both expected API response format and actual backend format
+      // The backend returns { message: "ok", data: {...} } for success
+      // instead of { status: "success", data: {...}, message: "ok" }
+      const isSuccess = isApiSuccess(apiResponse) ||
+        (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+
+      if (!isSuccess) {
         const errorMessage = 'Operation Failed';
         setOperationError(errorMessage);
         message.error(errorMessage);
@@ -519,7 +530,7 @@ export const AddressBookPage: React.FC = () => {
     const fullParams = {
       page: params.page || 1,
       limit: params.limit || 10,
-      search: searchTerm,
+      search: params.search || undefined,
       ...(params.sortField &&
         params.sortOrder && { sort: `${params.sortField},${params.sortOrder}` }),
     };
@@ -535,7 +546,13 @@ export const AddressBookPage: React.FC = () => {
 
     const apiResponse = result.value;
 
-    if (!isApiSuccess(apiResponse)) {
+    // Handle both expected API response format and actual backend format
+    // The backend returns { message: "ok", data: [...], metadata: {...} }
+    // instead of { status: "success", data: {...}, message: "ok" }
+    const isSuccess = isApiSuccess(apiResponse) ||
+      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+
+    if (!isSuccess) {
       const errorMessage = 'Failed to load contacts';
       setError(errorMessage);
       message.error(errorMessage);
@@ -578,7 +595,14 @@ export const AddressBookPage: React.FC = () => {
         prefix={<SearchOutlined />}
         value={searchTerm}
         onChange={e => {
-          setSearchTerm(e.target.value);
+          const newSearchTerm = e.target.value;
+          setSearchTerm(newSearchTerm);
+          // Trigger search with backend filtering, reset to first page
+          loadContactsWithParams({ 
+            page: 1, 
+            limit: paginationState.pageSize, 
+            search: newSearchTerm 
+          });
         }}
         style={{ maxWidth: 400 }}
       />

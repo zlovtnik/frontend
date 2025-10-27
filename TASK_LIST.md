@@ -1399,21 +1399,21 @@ describe('Contact Management Flow', () => {
 **Tasks:**
 
 **Address Book Service:**
-- [ ] Remove mock data from AddressBookPage.tsx
-- [ ] Implement real API calls for getAll()
-- [ ] Implement real API calls for create()
-- [ ] Implement real API calls for update()
-- [ ] Implement real API calls for delete()
-- [ ] Handle pagination with backend API
-- [ ] Implement search with backend filtering
-- [ ] Test data transformation (Person ↔ Contact)
+- [x] Remove mock data from AddressBookPage.tsx
+- [x] Implement real API calls for getAll()
+- [x] Implement real API calls for create()
+- [x] Implement real API calls for update()
+- [x] Implement real API calls for delete()
+- [x] Handle pagination with backend API
+- [x] Implement search with backend filtering
+- [x] Test data transformation (Person ↔ Contact)
 
 **Authentication Service:**
 - [x] Login endpoint integrated (appears complete)
 - [x] Token refresh endpoint integrated (appears complete)
-- [ ] Logout endpoint implementation (verify cleanup)
-- [ ] Registration endpoint (if supported by backend)
-- [ ] Password reset flow (if supported)
+- [x] Logout endpoint implementation (verify cleanup)
+- [x] Registration endpoint (if supported by backend)
+- [x] Password reset flow (if supported)
 
 **Tenant Service:**
 - [ ] Get all tenants API integration

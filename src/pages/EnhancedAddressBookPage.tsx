@@ -181,8 +181,14 @@ export const EnhancedAddressBookPage: React.FC = () => {
 
     const apiResponse = result.value;
 
-    if (!isApiSuccess(apiResponse)) {
-      const errorMessage = apiResponse.error.message || 'Failed to load contacts';
+    // Handle both expected API response format and actual backend format
+    // The backend returns { message: "ok", data: [...], metadata: {...} }
+    // instead of { status: "success", data: {...}, message: "ok" }
+    const isSuccess = isApiSuccess(apiResponse) ||
+      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+
+    if (!isSuccess) {
+      const errorMessage = apiResponse.error?.message || 'Failed to load contacts';
       setError(errorMessage);
       message.error(errorMessage);
       setLoading(false);

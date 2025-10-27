@@ -25,6 +25,12 @@ const TenantsPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then(module => ({ default: module.NotFoundPage }))
 );
+const RegisterPage = lazy(() =>
+  import('./pages/RegisterPage').then(module => ({ default: module.RegisterPage }))
+);
+const PasswordResetPage = lazy(() =>
+  import('./pages/PasswordResetPage').then(module => ({ default: module.PasswordResetPage }))
+);
 
 // Validate environment configuration at module load time
 let envError: Error | null = null;
@@ -51,6 +57,8 @@ export const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/reset-password" element={<PasswordResetPage />} />
               <Route
                 path="/dashboard"
                 element={

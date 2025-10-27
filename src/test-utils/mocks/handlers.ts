@@ -379,6 +379,135 @@ export function getHandlers() {
       );
     }),
 
+    /**
+     * POST /auth/register - Register new user endpoint
+     */
+    http.post(`${API_BASE_URL}/auth/register`, async ({ request }) => {
+      const userData = (await request.json()) as {
+        first_name?: string;
+        last_name?: string;
+        email?: string;
+        password?: string;
+        password_confirm?: string;
+        accept_terms?: boolean;
+      };
+
+      // Simulate validation
+      if (!userData.first_name || !userData.last_name || !userData.email || !userData.password) {
+        return HttpResponse.json(
+          {
+            message: 'Missing required fields',
+            data: null,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (userData.password !== userData.password_confirm) {
+        return HttpResponse.json(
+          {
+            message: 'Passwords do not match',
+            data: null,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (!userData.accept_terms) {
+        return HttpResponse.json(
+          {
+            message: 'You must accept the terms and conditions',
+            data: null,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Create a valid mock JWT token
+      const mockJwt = createMockAuthJwt(userData.email, 'tenant-1');
+
+      // Simulate successful registration
+      return HttpResponse.json(
+        {
+          message: 'Registration successful',
+          data: {
+            access_token: mockJwt,
+            refresh_token: 'mock-refresh-token-67890',
+            token_type: 'bearer',
+          },
+        },
+        { status: 201 }
+      );
+    }),
+
+    /**
+     * POST /auth/reset-password - Request password reset endpoint
+     */
+    http.post(`${API_BASE_URL}/auth/reset-password`, async ({ request }) => {
+      const { email } = (await request.json()) as { email?: string };
+
+      // Simulate validation
+      if (!email) {
+        return HttpResponse.json(
+          {
+            message: 'Email is required',
+            data: null,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Simulate successful password reset request
+      return HttpResponse.json(
+        {
+          message: 'Password reset email sent successfully',
+          data: {},
+        },
+        { status: 200 }
+      );
+    }),
+
+    /**
+     * POST /auth/reset-password/confirm - Confirm password reset endpoint
+     */
+    http.post(`${API_BASE_URL}/auth/reset-password/confirm`, async ({ request }) => {
+      const resetData = (await request.json()) as {
+        token?: string;
+        new_password?: string;
+        confirm_password?: string;
+      };
+
+      // Simulate validation
+      if (!resetData.token || !resetData.new_password) {
+        return HttpResponse.json(
+          {
+            message: 'Token and new password are required',
+            data: null,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (resetData.new_password !== resetData.confirm_password) {
+        return HttpResponse.json(
+          {
+            message: 'Passwords do not match',
+            data: null,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Simulate successful password reset
+      return HttpResponse.json(
+        {
+          message: 'Password reset successfully completed',
+          data: {},
+        },
+        { status: 200 }
+      );
+    }),
+
     // ============ Tenants ============
 
     /**

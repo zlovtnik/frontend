@@ -51,8 +51,8 @@ export const TenantManagementPage: React.FC = () => {
 
       const apiResponse = result.value;
       if (!isApiSuccess(apiResponse)) {
-        setError(apiResponse.error.message);
-        notifications.notifyTenantError('load', apiResponse.error.message);
+        setError(apiResponse.error?.message || 'Failed to load tenants');
+        notifications.notifyTenantError('load', apiResponse.error?.message || 'Failed to load tenants');
         return;
       }
 
@@ -96,7 +96,7 @@ export const TenantManagementPage: React.FC = () => {
 
         const apiResponse = result.value;
         if (!isApiSuccess(apiResponse)) {
-          notifications.notifyTenantError('delete', apiResponse.error.message, tenant.name);
+          notifications.notifyTenantError('delete', apiResponse.error?.message || 'Failed to delete tenant', tenant.name);
           return;
         }
 
@@ -141,7 +141,7 @@ export const TenantManagementPage: React.FC = () => {
           return {
             success: false,
             message: 'Operation failed',
-            error: apiResponse.error.message,
+            error: apiResponse.error?.message || 'Unknown error',
           };
         }
 

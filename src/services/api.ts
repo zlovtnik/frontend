@@ -35,7 +35,7 @@ import { z } from 'zod';
 import type { ZodType } from 'zod';
 import { getEnv } from '../config/env';
 import { paginatedTenantResponseSchema, tenantSchema } from '../validation/schemas';
-import type { AuthResponse, LoginCredentials, User, Tenant as AuthTenant } from '../types/auth';
+import type { AuthResponse, LoginCredentials, User, Tenant as AuthTenant, RegisterData, PasswordResetConfirm } from '../types/auth';
 import type { ContactListResponse, Contact } from '../types/contact';
 import type { Gender as PersonGender } from '../types/person';
 import type {
@@ -881,6 +881,86 @@ export const authService = {
       .map(toAuthResponse)
       .mapErr(toAuthError);
   },
+
+  /**
+   * Registers a new user account
+   *
+   * @param data - Registration data including user details and credentials
+   * @returns AsyncResult resolving to AuthResponse with JWT token and user/tenant data
+   *
+   * @example
+   * ```typescript
+   * const result = await authService.register({
+   *   firstName: 'John',
+   *   lastName: 'Doe',
+   *   email: 'john@example.com',
+   *   password: 'securePassword123',
+   *   confirmPassword: 'securePassword123',
+   *   acceptTerms: true
+   * });
+   * ```
+   */
+  register(data: RegisterData): AsyncResult<AuthResponse, AuthError> {
+    // Transform RegisterData to match backend expected format
+    const registerPayload = {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      email: data.email,
+      password: data.password,
+      password_confirm: data.confirmPassword,
+      accept_terms: data.acceptTerms,
+    };
+
+    return handleSuccessResponse<AuthResponse, AuthResponseSchema>(
+      apiClient.post<AuthResponse>('/auth/register', registerPayload),
+      authResponseSchema
+    )
+      .map(toAuthResponse)
+      .mapErr(toAuthError);
+  },
+
+  /**
+   * Initiates password reset process by sending reset email
+   *
+   * @param email - User's email address
+   * @returns AsyncResult with success status and message
+   *
+   * @example
+   * ```typescript
+   * const result = await authService.requestPasswordReset('user@example.com');
+   * result.match(
+   *   (response) => console.log('Reset email sent:', response.message),
+   *   (error) => console.error('Reset failed:', error.message)
+   * );
+   * ```
+   */
+  requestPasswordReset(email: string): AsyncResult<ApiResponse<Record<string, unknown>>, AppError> {
+    return apiClient.post<Record<string, unknown>>('/auth/reset-password', { email });
+  },
+
+  /**
+   * Confirms password reset with new password and token
+   *
+   * @param data - Password reset confirmation data
+   * @returns AsyncResult with success status and message
+   *
+   * @example
+   * ```typescript
+   * const result = await authService.confirmPasswordReset({
+   *   token: 'reset-token-from-email',
+   *   newPassword: 'newSecurePassword123',
+   *   confirmPassword: 'newSecurePassword123'
+   * });
+   * ```
+   */
+  confirmPasswordReset(data: PasswordResetConfirm): AsyncResult<ApiResponse<Record<string, unknown>>, AppError> {
+    const resetPayload = {
+      token: data.token,
+      new_password: data.newPassword,
+      confirm_password: data.confirmPassword,
+    };
+    return apiClient.post<Record<string, unknown>>('/auth/reset-password/confirm', resetPayload);
+  },
 };
 
 /**
@@ -1170,10 +1250,34 @@ export const addressBookService = {
     if (params?.sort != null && params.sort !== '') queryParams.set('sort', params.sort);
 
     const query = queryParams.toString();
-    return transformApiResponse(
-      apiClient.get<unknown>(query ? `/address-book?${query}` : '/address-book'),
-      contactListFromApiResponse
-    );
+    return apiClient
+      .get<Record<string, unknown>>(query ? `/address-book?${query}` : '/address-book')
+      .andThen(response => {
+        if (response.status === 'success') {
+          // The HTTP client has already processed the response and extracted body.data as response.data
+          // contactListFromApiResponse expects { data: [...], message: "ok", metadata: {...} }
+          // So we need to reconstruct this format
+          const fullResponse = {
+            data: response.data, // This is already the contacts array from body.data
+            message: response.message || 'ok',
+            // The metadata should come from the original response, but since it's not preserved,
+            // we'll create default metadata
+            metadata: {
+              count: Array.isArray(response.data) ? response.data.length : 0,
+              current_cursor: 0,
+              has_more: false,
+              next_cursor: null,
+              page_size: params?.limit || 10,
+              total_elements: Array.isArray(response.data) ? response.data.length : 0,
+            }
+          };
+
+          return liftResult(contactListFromApiResponse(fullResponse)).map(domainData =>
+            createSuccessResponse(domainData, response.message)
+          );
+        }
+        return okAsync(response as ApiResponse<ContactListResponse>);
+      });
   },
 
   /**

@@ -11,7 +11,7 @@ import {
   DEFAULT_COMMON_PASSWORDS_CONFIG,
 } from '@/config/commonPasswords';
 
-import { testLogger } from '@/test-utils/logger';
+import { logger } from '@/utils/logger';
 
 interface PasswordListResponse {
   version: string;
@@ -52,14 +52,14 @@ export class CommonPasswordsLoader {
       if (!this.config.isSSR && runtimeIsSSR) {
         throw new Error(
           'Configuration mismatch: isSSR is set to false but window is undefined (SSR environment). ' +
-            'The isSSR config must match the actual runtime environment.'
+          'The isSSR config must match the actual runtime environment.'
         );
       }
 
       if (this.config.isSSR && !runtimeIsSSR) {
         throw new Error(
           'Configuration mismatch: isSSR is set to true but window is defined (client environment). ' +
-            'The isSSR config must match the actual runtime environment.'
+          'The isSSR config must match the actual runtime environment.'
         );
       }
     }
@@ -176,12 +176,12 @@ export class CommonPasswordsLoader {
 
   private async loadPasswords(): Promise<readonly string[]> {
     if (!this.config.enabled) {
-      testLogger.debug('[CommonPasswordsLoader] Loading disabled, using fallback');
+      logger.debug('[CommonPasswordsLoader] Loading disabled, using fallback');
       return COMMON_PASSWORDS_FALLBACK;
     }
 
     if (!this.config.filePath) {
-      testLogger.debug('[CommonPasswordsLoader] No file path configured, using fallback');
+      logger.debug('[CommonPasswordsLoader] No file path configured, using fallback');
       return COMMON_PASSWORDS_FALLBACK;
     }
 
@@ -198,12 +198,12 @@ export class CommonPasswordsLoader {
         version: response.version,
       };
 
-      testLogger.info(
+      logger.info(
         `[CommonPasswordsLoader] Loaded ${passwordList.length} passwords from ${this.config.filePath}`
       );
       return this.cachedList.passwords;
     } catch (error) {
-      testLogger.warn(
+      logger.warn(
         `[CommonPasswordsLoader] Failed to load passwords from ${this.config.filePath}, using fallback:`,
         error
       );
@@ -298,7 +298,7 @@ export class CommonPasswordsLoader {
     // Enforce maxCacheEntries limit (count-based eviction)
     const maxEntries = this.getMaxCacheEntries();
     if (maxEntries > 0 && uniquePasswords.length > maxEntries) {
-      testLogger.warn(
+      logger.warn(
         `[CommonPasswordsLoader] Password list (${uniquePasswords.length}) exceeds maxCacheEntries (${maxEntries}). ` +
           `Truncating to limit cache memory growth.`
       );
@@ -306,7 +306,7 @@ export class CommonPasswordsLoader {
     }
 
     return uniquePasswords;
-  }
+}
 
   /**
    * Reset loader for testing
