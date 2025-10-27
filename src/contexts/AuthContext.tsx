@@ -120,7 +120,7 @@ const attemptTokenRefresh = async (
           typeof parsedUser.username === 'string' &&
           parsedUser.username.trim() !== '' &&
           Array.isArray(parsedUser.roles) &&
-          parsedUser.roles.every(role => typeof role === 'string')
+          parsedUser.roles.every((role: unknown) => typeof role === 'string')
         ) {
           refreshedUser = {
             ...parsedUser,
@@ -130,6 +130,7 @@ const attemptTokenRefresh = async (
           };
         }
       } catch (parseError) {
+        // Ignore parsing errors for user data
       }
     }
 
@@ -152,6 +153,7 @@ const attemptTokenRefresh = async (
           } as Tenant;
         }
       } catch (parseError) {
+        // Ignore parsing errors for tenant data
       }
     }
 
@@ -237,12 +239,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser(result.user);
                 setTenant(result.tenant);
               }
-            } else {
-              if (!abortController.signal.aborted) {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
-                localStorage.removeItem('tenant');
-              }
+            } else if (!abortController.signal.aborted) {
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('tenant');
             }
             return;
           } else {
@@ -259,7 +259,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               typeof parsedUser.username === 'string' &&
               parsedUser.username.trim() !== '' &&
               Array.isArray(parsedUser.roles) &&
-              parsedUser.roles.every(role => typeof role === 'string');
+              parsedUser.roles.every((role: unknown) => typeof role === 'string');
 
             const isValidTenant =
               parsedTenant &&
@@ -285,13 +285,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 localStorage.removeItem('user');
                 localStorage.removeItem('tenant');
               }
-            } else {
+            } else if (!abortController.signal.aborted) {
               // Invalid data structure, clear stored data
-              if (!abortController.signal.aborted) {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
-                localStorage.removeItem('tenant');
-              }
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('tenant');
             }
           }
         }
@@ -392,9 +390,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const logoutResult = await authService.logout();
 
       if (logoutResult.isErr()) {
+        // Logout API call failed, but we still clear local data
       } else {
+        // Logout API call succeeded
       }
     } catch (error) {
+      // Logout API call threw an exception, but we still clear local data
     } finally {
       // Always clear local data regardless of API call success
       setUser(null);

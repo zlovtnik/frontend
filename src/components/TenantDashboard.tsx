@@ -33,29 +33,7 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
-import { DatabaseManagementModal } from './DatabaseManagementModal';
-
-const { Title, Text } = Typography;
-
-// Dashboard-specific Tenant interface that extends the base with required properties
-interface DashboardTenant {
-  id: string;
-  name: string;
-  isActive?: boolean;
-  db_url?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface TenantDashboardProps {
-  tenants: DashboardTenant[];
-  onTenantSelect: (tenant: DashboardTenant) => void;
-  onTenantEdit: (tenant: DashboardTenant) => void;
-  onTenantDelete: (tenant: DashboardTenant) => void;
-  onTenantCreate: () => void;
-  onRefresh?: () => void;
-  loading?: boolean;
-}
+import { Tenant } from '@/types/tenant';
 
 interface TenantStats {
   total: number;
@@ -75,7 +53,7 @@ export const TenantDashboard: React.FC<TenantDashboardProps> = ({
   onRefresh,
   loading = false,
 }) => {
-  const [selectedTenant, setSelectedTenant] = useState<DashboardTenant | null>(null);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
 
   // Database management handlers
@@ -130,14 +108,14 @@ export const TenantDashboard: React.FC<TenantDashboardProps> = ({
   }, [tenants]);
 
   const handleTenantSelect = useCallback(
-    (tenant: DashboardTenant) => {
+    (tenant: Tenant) => {
       setSelectedTenant(tenant);
       onTenantSelect(tenant);
     },
     [onTenantSelect]
   );
 
-  const getTenantStatus = useCallback((tenant: DashboardTenant) => {
+  const getTenantStatus = useCallback((tenant: Tenant) => {
     if (tenant.isActive === false) return { color: 'red', text: 'Inactive' };
     if (tenant.db_url == null || tenant.db_url.trim() === '')
       return { color: 'orange', text: 'No Database' };

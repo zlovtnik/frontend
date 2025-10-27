@@ -33,7 +33,7 @@ export const PasswordResetPage: React.FC = () => {
     try {
       const result = await requestPasswordReset(values.email);
       
-      if (result.success) {
+      if (result.isSuccess) {
         setSubmitSuccess(result.message);
         setResetEmail(values.email);
         setCurrentStep(1); // Move to confirmation step
@@ -62,7 +62,7 @@ export const PasswordResetPage: React.FC = () => {
         confirmPassword: values.confirmPassword,
       });
       
-      if (result.success) {
+      if (result.isSuccess) {
         setSubmitSuccess(result.message);
         // After successful reset, navigate to login page after a delay
         setTimeout(() => {

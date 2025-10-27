@@ -281,8 +281,9 @@ export const AddressBookPage: React.FC = () => {
     // Handle both expected API response format and actual backend format
     // The backend returns { message: "ok", data: [...], metadata: {...} }
     // instead of { status: "success", data: {...}, message: "ok" }
-    const isSuccess = isApiSuccess(apiResponse) ||
-      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+    const isProperSuccess = isApiSuccess(apiResponse);
+    const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
+    const isSuccess = isProperSuccess || hasRawSuccessFormat;
 
     if (!isSuccess) {
       const errorMessage = apiResponse.error?.message || 'Failed to load contacts';
@@ -292,7 +293,7 @@ export const AddressBookPage: React.FC = () => {
       return;
     }
 
-    const data = apiResponse.data;
+    const data = apiResponse.data as ContactListResponse;
     const records = Array.isArray(data?.contacts) ? data.contacts : [];
     const transformedContacts = records.map(personToContact);
     setContacts(transformedContacts);
@@ -340,8 +341,9 @@ export const AddressBookPage: React.FC = () => {
     // Handle both expected API response format and actual backend format
     // The backend returns { message: "ok", data: {...} } for success
     // instead of { status: "success", data: {...}, message: "ok" }
-    const isSuccess = isApiSuccess(apiResponse) ||
-      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+    const isProperSuccess = isApiSuccess(apiResponse);
+    const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
+    const isSuccess = isProperSuccess || hasRawSuccessFormat;
 
     if (!isSuccess) {
       const errorMessage = 'Operation Failed';
@@ -410,8 +412,9 @@ export const AddressBookPage: React.FC = () => {
       // Handle both expected API response format and actual backend format
       // The backend returns { message: "ok", data: {...} } for success
       // instead of { status: "success", data: {...}, message: "ok" }
-      const isSuccess = isApiSuccess(apiResponse) ||
-        (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+      const isProperSuccess = isApiSuccess(apiResponse);
+      const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
+      const isSuccess = isProperSuccess || hasRawSuccessFormat;
 
       if (!isSuccess) {
         const errorMessage = 'Operation Failed';
@@ -549,8 +552,9 @@ export const AddressBookPage: React.FC = () => {
     // Handle both expected API response format and actual backend format
     // The backend returns { message: "ok", data: [...], metadata: {...} }
     // instead of { status: "success", data: {...}, message: "ok" }
-    const isSuccess = isApiSuccess(apiResponse) ||
-      (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+    const isProperSuccess = isApiSuccess(apiResponse);
+    const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
+    const isSuccess = isProperSuccess || hasRawSuccessFormat;
 
     if (!isSuccess) {
       const errorMessage = 'Failed to load contacts';
@@ -560,7 +564,7 @@ export const AddressBookPage: React.FC = () => {
       return;
     }
 
-    const data = apiResponse.data;
+    const data = apiResponse.data as ContactListResponse;
     const records = Array.isArray(data?.contacts) ? data.contacts : [];
     const transformedContacts = records.map(personToContact);
     setContacts(transformedContacts);

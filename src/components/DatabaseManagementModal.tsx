@@ -26,16 +26,7 @@ import {
   InfoCircleOutlined,
   CopyOutlined,
 } from '@ant-design/icons';
-
-// Dashboard-specific Tenant interface that extends the base with required properties
-interface DashboardTenant {
-  id: string;
-  name: string;
-  db_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  isActive?: boolean;
-}
+import { Tenant } from '@/types/tenant';
 
 const { Title, Text } = Typography;
 
@@ -51,7 +42,7 @@ interface DatabaseInfo {
 interface DatabaseManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tenants: DashboardTenant[];
+  tenants: Tenant[];
   onRefresh?: () => void;
 }
 
