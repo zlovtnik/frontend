@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import type { Contact, ContactListResponse } from '@/types/contact';
+import type { Contact } from '@/types/contact';
 import { Gender } from '@/types/contact';
 import { normalizePersonDTO, type PersonDTO } from '@/types/person';
 import { addressBookService } from '@/services/api';
@@ -23,7 +23,12 @@ import {
   Select,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import { isApiSuccess } from '@/types/api';
+import {
+  type ApiResponseSuccessLike,
+  type ApiResponseWithLegacy,
+  isApiResponseSuccess,
+  isApiSuccess,
+} from '@/types/api';
 import { asContactId, asTenantId, asUserId } from '@/types/ids';
 
 interface AddressFormValues {
@@ -253,6 +258,172 @@ export const AddressBookPage: React.FC = () => {
     };
   };
 
+  const toPositiveInteger = (value: unknown, fallback: number): number => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const normalized = Math.trunc(value);
+      return normalized > 0 ? normalized : fallback;
+    }
+
+    return fallback;
+  };
+
+  const toNonNegativeInteger = (value: unknown, fallback: number): number => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const normalized = Math.trunc(value);
+      return normalized >= 0 ? normalized : fallback;
+    }
+
+    return fallback;
+  };
+
+  const asRecord = (value: unknown): Record<string, unknown> | null => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+
+    return null;
+  };
+
+  type NormalizedContacts = {
+    contacts: PersonDTO[];
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+
+  const normalizeContactListPayload = (
+    response: unknown,
+    isProperSuccess: boolean,
+    hasRawSuccessFormat: boolean
+  ): NormalizedContacts | null => {
+    type PartialContactData = {
+      contacts?: unknown;
+      page?: unknown;
+      current?: unknown;
+      limit?: unknown;
+      pageSize?: unknown;
+      perPage?: unknown;
+      total?: unknown;
+    };
+
+    const responseObject = asRecord(response);
+    if (!responseObject) {
+      return null;
+    }
+
+    let payload: PartialContactData | null = null;
+
+    if (isProperSuccess) {
+      const candidateObject = asRecord(responseObject.data);
+      if (!candidateObject) {
+        return null;
+      }
+
+      payload = candidateObject as PartialContactData;
+    } else if (hasRawSuccessFormat) {
+      const rawData = responseObject.data;
+      const metadataRecord = asRecord(responseObject.metadata);
+
+      if (!Array.isArray(rawData)) {
+        return null;
+      }
+
+      const readMetadata = (key: string): unknown =>
+        metadataRecord && key in metadataRecord ? metadataRecord[key] : undefined;
+
+      payload = {
+        contacts: rawData,
+        page: readMetadata('page'),
+        current: readMetadata('current'),
+        limit:
+          readMetadata('limit') ??
+          readMetadata('pageSize') ??
+          readMetadata('perPage'),
+        pageSize: readMetadata('pageSize'),
+        perPage: readMetadata('perPage'),
+        total:
+          readMetadata('total') ??
+          readMetadata('count') ??
+          readMetadata('totalCount') ??
+          rawData.length,
+      };
+    }
+
+    if (!payload) {
+      return null;
+    }
+
+    const contacts = Array.isArray(payload.contacts)
+      ? payload.contacts.filter(
+          (candidate): candidate is PersonDTO => typeof candidate === 'object' && candidate !== null
+        )
+      : [];
+
+    const page = toPositiveInteger(payload.page ?? payload.current, 1);
+    const pageSize = toPositiveInteger(
+      payload.limit ?? payload.pageSize ?? payload.perPage,
+      10
+    );
+    const total = toNonNegativeInteger(payload.total, contacts.length);
+
+    return {
+      contacts,
+      page,
+      pageSize,
+      total,
+    };
+  };
+
+  type SuccessShape = { isProperSuccess: boolean; hasRawSuccessFormat: boolean };
+
+  type LegacySuccessPayload = {
+    message?: unknown;
+    data?: unknown;
+    metadata?: unknown;
+  } & Record<string, unknown>;
+
+  const isPotentialRawSuccess = (payload: unknown): payload is LegacySuccessPayload =>
+    asRecord(payload) !== null;
+
+  const deriveSuccessShape = (apiResponse: unknown): SuccessShape => {
+    const isProperSuccess = isApiSuccess(apiResponse as never);
+
+    if (isProperSuccess) {
+      return { isProperSuccess: true, hasRawSuccessFormat: false };
+    }
+
+    const rawResponse = asRecord(apiResponse);
+    const hasRawSuccessFormat = Boolean(
+      rawResponse &&
+        rawResponse.data !== undefined &&
+        rawResponse.message === 'ok'
+    );
+
+    return {
+      isProperSuccess,
+      hasRawSuccessFormat,
+    };
+  };
+
+  const getResponseMessage = (apiResponse: unknown, fallback: string): string => {
+    const rawResponse = asRecord(apiResponse);
+    if (rawResponse && typeof rawResponse.message === 'string' && rawResponse.message.trim()) {
+      return rawResponse.message;
+    }
+
+    return fallback;
+  };
+
+  const extractNormalizedContacts = (
+    apiResponse: unknown,
+    successShape: SuccessShape
+  ): NormalizedContacts | null =>
+    normalizeContactListPayload(
+      apiResponse,
+      successShape.isProperSuccess,
+      successShape.hasRawSuccessFormat
+    );
+
   const loadContacts = useCallback(async () => {
     if (!tenant) {
       setContacts([]);
@@ -283,27 +454,35 @@ export const AddressBookPage: React.FC = () => {
     // Handle both expected API response format and actual backend format
     // The backend returns { message: "ok", data: [...], metadata: {...} }
     // instead of { status: "success", data: {...}, message: "ok" }
-    const isProperSuccess = isApiSuccess(apiResponse);
-    const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
-    const isSuccess = isProperSuccess || hasRawSuccessFormat;
+    const successShape = deriveSuccessShape(apiResponse);
+    const isSuccess = successShape.isProperSuccess || successShape.hasRawSuccessFormat;
 
     if (!isSuccess) {
-      const errorMessage = apiResponse.error?.message || 'Failed to load contacts';
+      const errorMessage = getResponseMessage(apiResponse, 'Failed to load contacts');
       setError(errorMessage);
       message.error(errorMessage);
       setLoading(false);
       return;
     }
 
-    const data = apiResponse.data as ContactListResponse;
-    const records = Array.isArray(data?.contacts) ? data.contacts : [];
-    const transformedContacts = records.map(personToContact);
+    const normalizedData = extractNormalizedContacts(apiResponse, successShape);
+
+    if (!normalizedData) {
+      const errorMessage = 'Failed to load contacts';
+      setError(errorMessage);
+      message.error(errorMessage);
+      setLoading(false);
+      return;
+    }
+
+    const { contacts: rawContacts, page, pageSize, total } = normalizedData;
+    const transformedContacts = rawContacts.map(personToContact);
     setContacts(transformedContacts);
     setPaginationState(prev => {
       const next = {
-        current: data.page || 1,
-        pageSize: data.limit || 10,
-        total: data.total || 0,
+        current: page,
+        pageSize,
+        total,
       };
 
       if (
@@ -352,15 +531,11 @@ export const AddressBookPage: React.FC = () => {
 
     const apiResponse = result.value;
 
-    // Handle both expected API response format and actual backend format
-    // The backend returns { message: "ok", data: {...} } for success
-    // instead of { status: "success", data: {...}, message: "ok" }
-    const isProperSuccess = isApiSuccess(apiResponse);
-    const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
-    const isSuccess = isProperSuccess || hasRawSuccessFormat;
+    const successShape = deriveSuccessShape(apiResponse);
+    const isSuccess = successShape.isProperSuccess || successShape.hasRawSuccessFormat;
 
     if (!isSuccess) {
-      const errorMessage = 'Operation Failed';
+      const errorMessage = getResponseMessage(apiResponse, 'Operation Failed');
       setFormError(errorMessage);
       setOperationError(errorMessage);
       message.error(errorMessage);
@@ -369,9 +544,10 @@ export const AddressBookPage: React.FC = () => {
       return;
     }
 
-    const successMsg =
-      apiResponse.message ??
-      (isUpdating ? 'Contact updated successfully!' : 'Contact created successfully!');
+    const successMsg = getResponseMessage(
+      apiResponse,
+      isUpdating ? 'Contact updated successfully!' : 'Contact created successfully!'
+    );
     message.success(successMsg);
 
     await loadContacts();
@@ -421,14 +597,9 @@ export const AddressBookPage: React.FC = () => {
         return;
       }
 
-      const apiResponse = result.value;
+      const apiResponse = result.value as ApiResponseWithLegacy<Record<string, unknown>>;
 
-      // Handle both expected API response format and actual backend format
-      // The backend returns { message: "ok", data: {...} } for success
-      // instead of { status: "success", data: {...}, message: "ok" }
-      const isProperSuccess = isApiSuccess(apiResponse);
-      const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
-      const isSuccess = isProperSuccess || hasRawSuccessFormat;
+      const isSuccess = isApiResponseSuccess(apiResponse);
 
       if (!isSuccess) {
         const errorMessage = 'Operation Failed';
@@ -561,14 +732,9 @@ export const AddressBookPage: React.FC = () => {
       return;
     }
 
-    const apiResponse = result.value;
+    const apiResponse = result.value as ApiResponseWithLegacy<Contact>;
 
-    // Handle both expected API response format and actual backend format
-    // The backend returns { message: "ok", data: [...], metadata: {...} }
-    // instead of { status: "success", data: {...}, message: "ok" }
-    const isProperSuccess = isApiSuccess(apiResponse);
-    const hasRawSuccessFormat = !isProperSuccess && 'data' in apiResponse && apiResponse.message === 'ok' && (apiResponse as any).data !== undefined;
-    const isSuccess = isProperSuccess || hasRawSuccessFormat;
+    const isSuccess = isApiResponseSuccess(apiResponse);
 
     if (!isSuccess) {
       const errorMessage = 'Failed to load contacts';
@@ -578,15 +744,25 @@ export const AddressBookPage: React.FC = () => {
       return;
     }
 
-    const data = apiResponse.data as ContactListResponse;
-    const records = Array.isArray(data?.contacts) ? data.contacts : [];
-    const transformedContacts = records.map(personToContact);
+    const successShape = deriveSuccessShape(apiResponse);
+    const normalizedData = extractNormalizedContacts(apiResponse, successShape);
+
+    if (!normalizedData) {
+      const errorMessage = 'Failed to load contacts';
+      setError(errorMessage);
+      message.error(errorMessage);
+      setLoading(false);
+      return;
+    }
+
+    const { contacts: rawContacts, page, pageSize, total } = normalizedData;
+    const transformedContacts = rawContacts.map(personToContact);
     setContacts(transformedContacts);
     setPaginationState(prev => {
       const next = {
-        current: data.page || 1,
-        pageSize: data.limit || 10,
-        total: data.total || 0,
+        current: page,
+        pageSize,
+        total,
       };
 
       if (

@@ -22,10 +22,17 @@ import {
   resetApiClientCircuitBreaker,
   DEFAULT_CONFIG,
 } from '../services/api';
-import { getEnv } from '../config/env';
-import type { LoginCredentials } from '../types/auth';
+import {
+  API_ERROR_TYPES,
+  createAuthError,
+  createBusinessLogicError,
+  createNetworkError,
+  createValidationError,
+} from '../types/errors';
 import { asTenantId } from '../types/ids';
 import { Gender } from '../types/person';
+import { getEnv } from '../config/env';
+import type { LoginCredentials } from '../types/auth';
 
 // Get API base URL from environment
 const API_BASE_URL = getEnv().apiUrl;
@@ -401,7 +408,9 @@ describe('Validation Error Handling', () => {
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         // The auth service may convert validation errors to auth errors
-        expect(['validation', 'auth'].includes(result.error.type)).toBe(true);
+        expect(
+          [API_ERROR_TYPES.Validation, API_ERROR_TYPES.Authentication].includes(result.error.type)
+        ).toBe(true);
         expect((result.error.statusCode ?? result.error.message) !== undefined).toBe(true);
       }
     });
@@ -435,7 +444,7 @@ describe('Validation Error Handling', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.type).toBe('validation');
+        expect(result.error.type).toBe(API_ERROR_TYPES.Validation);
         expect(result.error.statusCode).toBe(400);
       }
     });
@@ -567,7 +576,7 @@ describe('Network Error Handling', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.type).toBe('network');
+        expect(result.error.type).toBe(API_ERROR_TYPES.Network);
         expect(result.error.code).toBe('TIMEOUT');
         // Remove the message assertion - rely on type and code assertions instead
       }
@@ -584,7 +593,7 @@ describe('Network Error Handling', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.type).toBe('network');
+        expect(result.error.type).toBe(API_ERROR_TYPES.Network);
       }
     });
   });
@@ -1142,7 +1151,7 @@ describe('Error Handling Integration', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.type).toBe('auth');
+        expect(result.error.type).toBe(API_ERROR_TYPES.Authentication);
         // Status code may not be available in all error types
         expect((result.error.statusCode ?? result.error.message) !== undefined).toBe(true);
       }
@@ -1178,7 +1187,14 @@ describe('Error Handling Integration', () => {
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         // The error type may vary depending on the service implementation
-        expect(['validation', 'network', 'business'].includes(result.error.type)).toBe(true);
+        expect(
+          [
+            API_ERROR_TYPES.Validation,
+            API_ERROR_TYPES.Network,
+            API_ERROR_TYPES.Server,
+            API_ERROR_TYPES.Timeout,
+          ].includes(result.error.type)
+        ).toBe(true);
         expect((result.error.statusCode ?? result.error.message) !== undefined).toBe(true);
       }
     });
@@ -1199,7 +1215,7 @@ describe('Error Handling Integration', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.type).toBe('auth');
+        expect(result.error.type).toBe(API_ERROR_TYPES.Authentication);
         // The error message may vary depending on the implementation
         expect(result.error.message).toBeDefined();
       }

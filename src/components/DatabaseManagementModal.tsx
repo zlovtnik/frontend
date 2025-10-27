@@ -17,6 +17,7 @@ import {
   Divider,
   Tooltip,
   Badge,
+  App,
 } from 'antd';
 import {
   DatabaseOutlined,
@@ -54,6 +55,7 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
 }) => {
   const [databaseStatuses, setDatabaseStatuses] = useState<Record<string, DatabaseInfo>>({});
   const [checkingStatus, setCheckingStatus] = useState<Record<string, boolean>>({});
+  const { message } = App.useApp();
 
   // Parse database URL to extract connection details
   const parseDatabaseUrl = useCallback((dbUrl: string): Partial<DatabaseInfo> => {
@@ -112,14 +114,18 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
   );
 
   // Copy connection string to clipboard
-  const copyConnectionString = useCallback(async (connectionString: string) => {
-    try {
-      await navigator.clipboard.writeText(connectionString);
-      // You could add a toast notification here
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  }, []);
+  const copyConnectionString = useCallback(
+    async (connectionString: string) => {
+      try {
+        await navigator.clipboard.writeText(connectionString);
+        message.success('Connection string copied');
+      } catch (error) {
+        console.error('Failed to copy to clipboard:', error);
+        message.error('Failed to copy connection string');
+      }
+    },
+    [message]
+  );
 
   // Get status color and icon
   const getStatusDisplay = (

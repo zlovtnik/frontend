@@ -50,8 +50,14 @@ import type { AppError, AuthError, BusinessLogicError } from '../types/errors';
 import {
   createAuthError,
   createBusinessLogicError,
+  createForbiddenError,
   createNetworkError,
+  createNotFoundError,
   createValidationError,
+  createServerError,
+  createTenantError,
+  createTimeoutError,
+  API_ERROR_TYPES,
 } from '../types/errors';
 import type { AsyncResult, Result } from '../types/fp';
 import { authResponseSchema, loginRequestSchema } from '../validation';
@@ -140,6 +146,45 @@ const DEFAULT_CONFIG: HttpClientConfig = {
   },
 };
 
+const readTenantFromStorage = (): string | null => {
+  try {
+    const storage: Storage | null =
+      typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+        ? window.localStorage
+        : typeof globalThis !== 'undefined' && 'localStorage' in globalThis
+          ? (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage ?? null
+          : null;
+
+    if (!storage) {
+      return null;
+    }
+
+    const raw = storage.getItem('tenant');
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      const record = parsed as Record<string, unknown>;
+      const tenantIdValue = record.id;
+
+      if (typeof tenantIdValue === 'string') {
+        const trimmed = tenantIdValue.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      }
+
+      if (typeof tenantIdValue === 'number' && Number.isFinite(tenantIdValue)) {
+        return String(tenantIdValue);
+      }
+    }
+  } catch {
+    // Ignore malformed storage values or unavailable storage environments
+  }
+
+  return null;
+};
+
 /**
  * Functional composition utility for building request pipeline
  * Applies a series of transformation functions from left to right
@@ -188,6 +233,11 @@ function pipe(value: unknown, ...fns: ((input: unknown) => unknown)[]): unknown 
  *
  * @internal
  */
+const extractRequestId = (response: Response): string | undefined => {
+  const requestIdHeader = response.headers.get('x-request-id') ?? response.headers.get('x-requestid');
+  return requestIdHeader ?? undefined;
+};
+
 const mapHttpError = (response: Response, body: Record<string, unknown>): AppError => {
   const message = typeof body.message === 'string' ? body.message : response.statusText;
   const code = typeof body.code === 'string' ? body.code : undefined;
@@ -195,11 +245,29 @@ const mapHttpError = (response: Response, body: Record<string, unknown>): AppErr
     typeof body.details === 'object' && body.details !== null
       ? (body.details as Record<string, unknown>)
       : undefined;
+  const requestId = extractRequestId(response);
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     return createAuthError(message || 'Authentication error', details, {
       code,
       statusCode: response.status,
+      requestId,
+    });
+  }
+
+  if (response.status === 403) {
+    return createForbiddenError(message || 'Forbidden', details, {
+      code,
+      statusCode: response.status,
+      requestId,
+    });
+  }
+
+  if (response.status === 404) {
+    return createNotFoundError(message || 'Not found', details, {
+      code,
+      statusCode: response.status,
+      requestId,
     });
   }
 
@@ -207,20 +275,31 @@ const mapHttpError = (response: Response, body: Record<string, unknown>): AppErr
     return createValidationError(message || 'Validation error', details, {
       code,
       statusCode: response.status,
+      requestId,
+    });
+  }
+
+  if (response.status === 409) {
+    return createTenantError(message || 'Tenant conflict', details, {
+      code,
+      statusCode: response.status,
+      requestId,
     });
   }
 
   if (response.status >= 500) {
-    return createNetworkError(message || 'Server error', details, {
+    return createServerError(message || 'Server error', details, {
       code,
       statusCode: response.status,
       retryable: true,
+      requestId,
     });
   }
 
-  return createBusinessLogicError(message || 'Request failed', details, {
+  return createNetworkError(message || 'Request failed', details, {
     code,
     statusCode: response.status,
+    requestId,
   });
 };
 
@@ -256,6 +335,7 @@ const apiResultFromResponse = <T>(response: Response): ResultAsync<ApiResponse<T
   ).andThen(body => {
     const message = typeof body.message === 'string' ? body.message : undefined;
     const status = typeof body.status === 'string' ? body.status : undefined;
+    const requestId = extractRequestId(response);
 
     // Extracted helper for determining success
     function isSuccess(
@@ -279,13 +359,14 @@ const apiResultFromResponse = <T>(response: Response): ResultAsync<ApiResponse<T
     }
 
     if (response.ok && !success) {
-      const error = createBusinessLogicError(
+      const error = createServerError(
         message ?? 'Request failed',
         body.error != null && typeof body.error === 'object'
           ? (body.error as Record<string, unknown>)
           : undefined,
         {
           statusCode: response.status,
+          requestId,
         }
       );
       return okAsync(createErrorResponse(error, message));
@@ -432,7 +513,7 @@ const transformApiResponse = <Raw, Domain>(
   });
 
 const toAuthError = (error: AppError): AuthError => {
-  if (error.type === 'auth') {
+  if (error.type === API_ERROR_TYPES.Authentication) {
     return error;
   }
 
@@ -451,7 +532,7 @@ const toAuthError = (error: AppError): AuthError => {
 };
 
 const _toBusinessError = (error: AppError): BusinessLogicError => {
-  if (error.type === 'business') {
+  if (error.type === API_ERROR_TYPES.Server) {
     return error;
   }
 
@@ -527,22 +608,7 @@ class HttpClient implements IHttpClient {
   }
 
   private safeGetTenantId(): string | null {
-    const stored = localStorage.getItem('tenant');
-    if (stored == null || stored === '') return null;
-    try {
-      const data = JSON.parse(stored) as Record<string, unknown>;
-      if (
-        typeof data === 'object' &&
-        data !== null &&
-        'id' in data &&
-        typeof data.id === 'string'
-      ) {
-        return data.id;
-      }
-    } catch {
-      // Ignore parsing errors
-    }
-    return null;
+    return readTenantFromStorage();
   }
 
   private sleep(delay: number): Promise<void> {
@@ -578,15 +644,18 @@ class HttpClient implements IHttpClient {
       return error.retryable;
     }
 
-    if (error.type === 'network') {
-      return true;
-    }
-
     if (error.statusCode && error.statusCode >= 500) {
       return true;
     }
 
-    return false;
+    switch (error.type) {
+      case API_ERROR_TYPES.Network:
+      case API_ERROR_TYPES.Timeout:
+      case API_ERROR_TYPES.Server:
+        return true;
+      default:
+        return false;
+    }
   }
 
   private updateCircuitBreaker(success: boolean): void {
@@ -672,8 +741,16 @@ class HttpClient implements IHttpClient {
       ? 'Request timed out'
       : 'Network error: Unable to reach the server';
 
+    if (isAbortError) {
+      return createTimeoutError(message, undefined, {
+        code: 'TIMEOUT',
+        retryable: true,
+        cause: error,
+      });
+    }
+
     return createNetworkError(message, undefined, {
-      code: isAbortError ? 'TIMEOUT' : 'NETWORK_ERROR',
+      code: 'NETWORK_ERROR',
       retryable: true,
       cause: error,
     });
@@ -1193,61 +1270,52 @@ export const tenantService = {
   },
 };
 
-const resolveStoredTenantId = (): string | null => {
-  try {
-    const storage: Storage | null =
-      typeof window !== 'undefined' && window.localStorage
-        ? window.localStorage
-        : typeof globalThis !== 'undefined' && 'localStorage' in globalThis
-          ? (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage ?? null
-          : null;
+const resolveStoredTenantId = (): string | null => readTenantFromStorage();
 
-    if (!storage) {
-      return null;
-    }
-
-    const raw = storage.getItem('tenant');
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
-      const record = parsed as Record<string, unknown>;
-      const tenantIdValue = record.id;
-
-      if (typeof tenantIdValue === 'string') {
-        const trimmed = tenantIdValue.trim();
-        return trimmed.length > 0 ? trimmed : null;
-      }
-
-      if (typeof tenantIdValue === 'number' && Number.isFinite(tenantIdValue)) {
-        return String(tenantIdValue);
-      }
-    }
-  } catch {
-    // Ignore malformed storage values or unavailable storage environments
-  }
-
-  return null;
-};
-
+// Backend responses require tenantId; legacy payloads may omit it, so inject locally as a safeguard.
 const attachTenantIdToContact = (contact: unknown, tenantId: string): unknown => {
   if (!contact || typeof contact !== 'object') {
     return contact;
   }
 
-  const record = contact as Record<string, unknown>;
-  if ('tenant_id' in record || 'tenantId' in record) {
+  const record = contact as Record<string, unknown> & { tenant_id?: unknown };
+  if ('tenantId' in record) {
     return contact;
   }
 
+  const { tenant_id: legacyTenantId, ...rest } = record;
+
+  let resolvedTenantId = tenantId;
+  if (typeof legacyTenantId === 'string') {
+    const trimmed = legacyTenantId.trim();
+    if (trimmed.length > 0) {
+      resolvedTenantId = trimmed;
+    }
+  } else if (typeof legacyTenantId === 'number' && Number.isFinite(legacyTenantId)) {
+    resolvedTenantId = String(legacyTenantId);
+  }
+
+  // eslint-disable-next-line no-console -- surface legacy payloads missing the required tenantId
+  console.warn('Injecting missing tenantId for contact:', record);
+
   return {
-    tenant_id: tenantId,
-    ...record,
+    ...rest,
+    tenantId: resolvedTenantId,
   };
 };
 
+/**
+ * Normalises tenantId across legacy contact list responses:
+ * - Direct arrays from `addressBookService.getAll` pagination fallbacks.
+ * - Objects with `contacts` arrays from `/address-book` success payloads.
+ * - Objects with top-level `data` arrays from legacy bulk import responses.
+ * This is a temporary migration shim; future work should align all endpoints on the
+ * `/address-book` success payload shape and drop this helper once backend formats converge.
+ *
+ * @param data - Raw response data to inspect.
+ * @param tenantId - Tenant identifier to inject when present.
+ * @returns Original data with tenantId applied where applicable.
+ */
 const ensureTenantIdOnCollection = (data: unknown, tenantId: string | null): unknown => {
   if (!tenantId) {
     return data;

@@ -1,15 +1,29 @@
+export const API_ERROR_TYPES = {
+  Network: 'NETWORK_ERROR',
+  Timeout: 'TIMEOUT_ERROR',
+  Validation: 'VALIDATION_ERROR',
+  Authentication: 'AUTH_ERROR',
+  Authorization: 'FORBIDDEN_ERROR',
+  NotFound: 'NOT_FOUND',
+  Server: 'SERVER_ERROR',
+  Tenant: 'TENANT_ERROR',
+} as const;
+
+export type ApiErrorType = (typeof API_ERROR_TYPES)[keyof typeof API_ERROR_TYPES];
+
 export interface BaseError {
-  readonly type: 'validation' | 'network' | 'auth' | 'business';
+  readonly type: ApiErrorType;
   readonly message: string;
   readonly code?: string;
   readonly details?: Record<string, unknown>;
   readonly cause?: unknown;
   readonly retryable?: boolean;
   readonly statusCode?: number;
+  readonly requestId?: string;
 }
 
 export interface ValidationError extends BaseError {
-  readonly type: 'validation';
+  readonly type: typeof API_ERROR_TYPES.Validation;
 }
 
 export interface ValidationErrorDetails {
@@ -22,71 +36,145 @@ export interface TypedValidationError extends Omit<ValidationError, 'details'> {
 }
 
 export interface NetworkError extends BaseError {
-  readonly type: 'network';
+  readonly type: typeof API_ERROR_TYPES.Network;
+}
+
+export interface TimeoutError extends BaseError {
+  readonly type: typeof API_ERROR_TYPES.Timeout;
 }
 
 export interface AuthError extends BaseError {
-  readonly type: 'auth';
+  readonly type: typeof API_ERROR_TYPES.Authentication;
 }
 
-export interface BusinessLogicError extends BaseError {
-  readonly type: 'business';
+export interface ForbiddenError extends BaseError {
+  readonly type: typeof API_ERROR_TYPES.Authorization;
 }
 
-export type AppError = TypedValidationError | NetworkError | AuthError | BusinessLogicError;
+export interface NotFoundError extends BaseError {
+  readonly type: typeof API_ERROR_TYPES.NotFound;
+}
+
+export interface ServerError extends BaseError {
+  readonly type: typeof API_ERROR_TYPES.Server;
+}
+
+export interface TenantError extends BaseError {
+  readonly type: typeof API_ERROR_TYPES.Tenant;
+}
+
+export type AppError =
+  | TypedValidationError
+  | NetworkError
+  | TimeoutError
+  | AuthError
+  | ForbiddenError
+  | NotFoundError
+  | ServerError
+  | TenantError;
+
+interface ErrorFactoryOptions {
+  code?: string;
+  cause?: unknown;
+  statusCode?: number;
+  retryable?: boolean;
+  requestId?: string;
+  details?: Record<string, unknown>;
+}
+
+const createBaseError = <Type extends ApiErrorType>(
+  type: Type,
+  message: string,
+  details?: Record<string, unknown>,
+  options?: ErrorFactoryOptions
+) => ({
+  type,
+  message,
+  details,
+  code: options?.code,
+  cause: options?.cause,
+  statusCode: options?.statusCode,
+  retryable: options?.retryable,
+  requestId: options?.requestId,
+}) as BaseError & { type: Type };
 
 export const createValidationError = (
   message: string,
   details?: Record<string, unknown>,
-  options?: { code?: string; cause?: unknown; statusCode?: number }
-): TypedValidationError => ({
-  type: 'validation',
-  message,
-  details,
-  code: options?.code,
-  cause: options?.cause,
-  statusCode: options?.statusCode,
-});
+  options?: ErrorFactoryOptions
+): TypedValidationError =>
+  createBaseError(API_ERROR_TYPES.Validation, message, details, options) as TypedValidationError;
 
 export const createNetworkError = (
   message: string,
   details?: Record<string, unknown>,
-  options?: { code?: string; retryable?: boolean; cause?: unknown; statusCode?: number }
-): NetworkError => ({
-  type: 'network',
-  message,
-  details,
-  code: options?.code,
-  retryable: options?.retryable,
-  cause: options?.cause,
-  statusCode: options?.statusCode,
-});
+  options?: ErrorFactoryOptions
+): NetworkError =>
+  createBaseError(API_ERROR_TYPES.Network, message, details, options) as NetworkError;
+
+export const createTimeoutError = (
+  message: string,
+  details?: Record<string, unknown>,
+  options?: ErrorFactoryOptions
+): TimeoutError =>
+  createBaseError(API_ERROR_TYPES.Timeout, message, details, {
+    ...options,
+    retryable: options?.retryable ?? true,
+  }) as TimeoutError;
 
 export const createAuthError = (
   message: string,
   details?: Record<string, unknown>,
-  options?: { code?: string; cause?: unknown; statusCode?: number }
-): AuthError => ({
-  type: 'auth',
-  message,
-  details,
-  code: options?.code,
-  cause: options?.cause,
-  statusCode: options?.statusCode,
-});
+  options?: ErrorFactoryOptions
+): AuthError =>
+  createBaseError(API_ERROR_TYPES.Authentication, message, details, options) as AuthError;
 
+export const createForbiddenError = (
+  message: string,
+  details?: Record<string, unknown>,
+  options?: ErrorFactoryOptions
+): ForbiddenError =>
+  createBaseError(API_ERROR_TYPES.Authorization, message, details, options) as ForbiddenError;
+
+export const createNotFoundError = (
+  message: string,
+  details?: Record<string, unknown>,
+  options?: ErrorFactoryOptions
+): NotFoundError =>
+  createBaseError(API_ERROR_TYPES.NotFound, message, details, options) as NotFoundError;
+
+export const createServerError = (
+  message: string,
+  details?: Record<string, unknown>,
+  options?: ErrorFactoryOptions
+): ServerError =>
+  createBaseError(API_ERROR_TYPES.Server, message, details, options) as ServerError;
+
+export const createTenantError = (
+  message: string,
+  details?: Record<string, unknown>,
+  options?: ErrorFactoryOptions
+): TenantError =>
+  createBaseError(API_ERROR_TYPES.Tenant, message, details, options) as TenantError;
+
+/**
+ * @deprecated Use createServerError instead.
+ */
 export const createBusinessLogicError = (
   message: string,
   details?: Record<string, unknown>,
-  options?: { code?: string; cause?: unknown; statusCode?: number }
-): BusinessLogicError => ({
-  type: 'business',
-  message,
-  details,
-  code: options?.code,
-  cause: options?.cause,
-  statusCode: options?.statusCode,
-});
+  options?: ErrorFactoryOptions
+): ServerError => createServerError(message, details, options);
+
+/**
+ * Backwards-compatible alias for server errors.
+ */
+export type BusinessLogicError = ServerError;
+
+/**
+ * Backwards-compatible alias for authorization errors.
+ */
+export type AuthorizationError = ForbiddenError;
 
 /**
  * Storage-related errors for FP patterns

@@ -201,13 +201,23 @@ export const paginatedTenantResponseSchema = z.object({
 });
 
 export const apiErrorSchema = z.object({
-  type: z.enum(['validation', 'network', 'auth', 'business']),
+  type: z.enum([
+    'NETWORK_ERROR',
+    'TIMEOUT_ERROR',
+    'VALIDATION_ERROR',
+    'AUTH_ERROR',
+    'FORBIDDEN_ERROR',
+    'NOT_FOUND',
+    'SERVER_ERROR',
+    'TENANT_ERROR',
+  ]),
   message: z.string(),
   code: z.string().optional(),
   details: z.record(z.string(), z.unknown()).optional(),
   cause: z.unknown().optional(),
   retryable: z.boolean().optional(),
   statusCode: z.number().optional(),
+  requestId: z.string().optional(),
 });
 
 // Schema for the auth response returned by auth endpoints

@@ -5,6 +5,7 @@ import { err } from 'neverthrow';
 import { logger } from '../utils/logger';
 import type { Result as FPResult } from '../types/fp';
 import type { AppError } from '../types/errors';
+import { API_ERROR_TYPES } from '../types/errors';
 
 export interface ResultRecoveryStrategy {
   canHandle: (error: AppError) => boolean;
@@ -143,7 +144,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     switch (error.type) {
-      case 'network':
+      case API_ERROR_TYPES.Network:
         return (
           <Alert
             message="Network Error"
@@ -166,7 +167,25 @@ export class ErrorBoundary extends Component<Props, State> {
           />
         );
 
-      case 'auth':
+      case API_ERROR_TYPES.Timeout:
+        return (
+          <Alert
+            message="Request Timed Out"
+            description={error.message}
+            type="warning"
+            showIcon
+            data-testid="timeout-error"
+            action={
+              error.retryable !== false ? (
+                <Button size="small" onClick={this.handleRetry}>
+                  Retry
+                </Button>
+              ) : undefined
+            }
+          />
+        );
+
+      case API_ERROR_TYPES.Authentication:
         return (
           <Result
             status="403"
@@ -181,18 +200,45 @@ export class ErrorBoundary extends Component<Props, State> {
           />
         );
 
-      case 'business':
+      case API_ERROR_TYPES.Authorization:
         return (
-          <Alert
-            message="Business Logic Error"
-            description={error.message}
-            type="warning"
-            showIcon
-            data-testid="business-error"
+          <Result
+            status="403"
+            title="Access Forbidden"
+            subTitle={error.message}
+            data-testid="forbidden-error"
           />
         );
 
-      case 'validation':
+      case API_ERROR_TYPES.NotFound:
+        return (
+          <Result
+            status="404"
+            title="Resource Not Found"
+            subTitle={error.message}
+            data-testid="not-found-error"
+          />
+        );
+
+      case API_ERROR_TYPES.Server:
+        return (
+          <Alert
+            message="Server Error"
+            description={error.message}
+            type="warning"
+            showIcon
+            data-testid="server-error"
+            action={
+              error.retryable !== false ? (
+                <Button size="small" onClick={this.handleRetry}>
+                  Retry
+                </Button>
+              ) : undefined
+            }
+          />
+        );
+
+      case API_ERROR_TYPES.Validation:
         return (
           <Alert
             message="Validation Error"
@@ -200,6 +246,17 @@ export class ErrorBoundary extends Component<Props, State> {
             type="error"
             showIcon
             data-testid="validation-error"
+          />
+        );
+
+      case API_ERROR_TYPES.Tenant:
+        return (
+          <Alert
+            message="Tenant Error"
+            description={error.message}
+            type="error"
+            showIcon
+            data-testid="tenant-error"
           />
         );
 

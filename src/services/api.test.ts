@@ -28,6 +28,7 @@ import type { CreateTenantDTO, UpdateTenantDTO } from '../types/tenant';
 import type { Contact } from '../types/contact';
 import { asTenantId } from '../types/ids';
 import { Gender } from '../types/person';
+import { API_ERROR_TYPES } from '../types/errors';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -100,7 +101,7 @@ describe('authService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(error.type).toBe('auth');
+        expect(error.type).toBe(API_ERROR_TYPES.Authentication);
         expect(error.message).toContain('Invalid');
         expect(error.statusCode).toBe(401);
       }
@@ -120,7 +121,9 @@ describe('authService', () => {
       if (result.isErr()) {
         const error = result.error;
         // Validation should fail before making API call - but returns auth error
-        expect(['validation', 'auth'].includes(error.type)).toBe(true);
+        expect(
+          [API_ERROR_TYPES.Validation, API_ERROR_TYPES.Authentication].includes(error.type)
+        ).toBe(true);
       }
     });
 
@@ -165,7 +168,9 @@ describe('authService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(['business', 'auth'].includes(error.type)).toBe(true);
+        expect(
+          [API_ERROR_TYPES.Server, API_ERROR_TYPES.Authentication].includes(error.type)
+        ).toBe(true);
         expect(error.message).toContain('parse');
       }
     });
@@ -262,7 +267,7 @@ describe('authService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(error.type).toBe('auth');
+        expect(error.type).toBe(API_ERROR_TYPES.Authentication);
         expect(error.message).toContain('expired');
       }
     });
@@ -320,6 +325,7 @@ describe('tenantService', () => {
 
       if (result.isErr()) {
         const error = result.error;
+        expect(error.type).toBe(API_ERROR_TYPES.Authorization);
         expect(error.statusCode).toBe(403);
       }
     });
@@ -383,6 +389,7 @@ describe('tenantService', () => {
 
       if (result.isErr()) {
         const error = result.error;
+        expect(error.type).toBe(API_ERROR_TYPES.NotFound);
         expect(error.statusCode).toBe(404);
       }
     });
@@ -434,7 +441,7 @@ describe('tenantService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(error.type).toBe('validation');
+        expect(error.type).toBe(API_ERROR_TYPES.Validation);
         expect(error.statusCode).toBe(400);
       }
     });
@@ -458,6 +465,7 @@ describe('tenantService', () => {
 
       if (result.isErr()) {
         const error = result.error;
+        expect(error.type).toBe(API_ERROR_TYPES.Tenant);
         expect(error.statusCode).toBe(409);
       }
     });
@@ -740,6 +748,7 @@ describe('addressBookService', () => {
       // Should have an appropriate error message
       if (result.isErr()) {
         const error = result.error;
+        expect(error.type).toBe(API_ERROR_TYPES.Validation);
         expect(error.message).toContain('gender');
       }
     });
@@ -811,7 +820,7 @@ describe('addressBookService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(error.type).toBe('validation');
+        expect(error.type).toBe(API_ERROR_TYPES.Validation);
       }
     });
 
@@ -937,7 +946,7 @@ describe('healthService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(error.type).toBe('network');
+        expect(error.type).toBe(API_ERROR_TYPES.Network);
         expect(error.statusCode).toBe(503);
       }
     });
@@ -1169,6 +1178,7 @@ describe('edge cases', () => {
 
     if (result.isErr()) {
       const error = result.error;
+      expect(error.type).toBe(API_ERROR_TYPES.Server);
       expect(error.message).toContain('JSON');
     }
   });
@@ -1187,7 +1197,7 @@ describe('edge cases', () => {
 
     if (result.isErr()) {
       const error = result.error;
-      expect(error.type).toBe('network');
+      expect(error.type).toBe(API_ERROR_TYPES.Network);
     }
   });
 

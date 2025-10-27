@@ -130,7 +130,9 @@ const attemptTokenRefresh = async (
           };
         }
       } catch (parseError) {
-        // Ignore parsing errors for user data
+        if (import.meta.env.DEV) {
+          console.debug('AuthContext: Failed to parse stored user data', parseError);
+        }
       }
     }
 
@@ -153,7 +155,9 @@ const attemptTokenRefresh = async (
           } as Tenant;
         }
       } catch (parseError) {
-        // Ignore parsing errors for tenant data
+        if (import.meta.env.DEV) {
+          console.debug('AuthContext: Failed to parse stored tenant data', parseError);
+        }
       }
     }
 
@@ -387,15 +391,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     try {
-      const logoutResult = await authService.logout();
-
-      if (logoutResult.isErr()) {
-        // Logout API call failed, but we still clear local data
-      } else {
-        // Logout API call succeeded
-      }
-    } catch (error) {
-      // Logout API call threw an exception, but we still clear local data
+      await authService.logout();
     } finally {
       // Always clear local data regardless of API call success
       setUser(null);
