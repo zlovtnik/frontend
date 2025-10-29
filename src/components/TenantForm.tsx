@@ -30,7 +30,6 @@ import {
 import type { Tenant } from '@/types/tenant';
 import { useTenantNotifications, type TenantOperationResult } from '@/hooks/useTenantNotifications';
 import { isValidPostgresConnectionString } from '@/validation/schemas';
-import { API_ERROR_TYPES } from '@/types/errors';
 import { getEnv } from '@/config/env';
 
 type ConnectionTestResult =
@@ -41,6 +40,8 @@ const { Title, Text } = Typography;
 
 const DATABASE_URL_ERROR_MESSAGE =
   'Please enter a valid PostgreSQL URL (postgres://...) or connection string (key=value pairs)';
+
+const CONNECTION_TEST_TIMEOUT_MS = 10000;
 
 interface TenantFormProps {
   open: boolean;
@@ -89,6 +90,37 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   const [connectionMessage, setConnectionMessage] = useState<string>('');
   const latestConnectionTestRef = useRef(0);
   const connectionTestAbortControllerRef = useRef<AbortController | null>(null);
+
+  const extractConnectionErrorMessage = useCallback(
+    (errorBody: unknown, defaultMessage: string): string => {
+      if (errorBody && typeof errorBody === 'object') {
+        const { message: errorMessage, error: errorDetails } = errorBody as {
+          message?: string;
+          error?: { reason?: string; message?: string };
+        };
+
+        if (errorMessage) {
+          return errorMessage;
+        }
+
+        if (errorDetails?.reason || errorDetails?.message) {
+          return errorDetails.reason ?? errorDetails.message ?? defaultMessage;
+        }
+      }
+
+      return defaultMessage;
+    },
+    []
+  );
+
+  const isConnectionTestPayload = (payload: unknown): payload is ConnectionTestResult => {
+    if (!payload || typeof payload !== 'object') {
+      return false;
+    }
+
+    const candidate = payload as { status?: unknown };
+    return candidate.status === 'success' || candidate.status === 'error';
+  };
 
   const notifications = useTenantNotifications();
 
@@ -179,7 +211,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       const baseUrl = getEnv().apiUrl ?? '';
       controller = new AbortController();
       connectionTestAbortControllerRef.current = controller;
-      timeoutId = window.setTimeout(() => controller?.abort(), 10000);
+      timeoutId = window.setTimeout(() => controller?.abort(), CONNECTION_TEST_TIMEOUT_MS);
 
       const response = await fetch(`${baseUrl}/tenant/test-connection`, {
         method: 'POST',
@@ -201,20 +233,10 @@ export const TenantForm: React.FC<TenantFormProps> = ({
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => undefined);
-        let message = 'Unable to verify database connection';
-
-        if (errorBody && typeof errorBody === 'object') {
-          const { message: errorMessage, error: errorDetails } = errorBody as {
-            message?: string;
-            error?: { reason?: string; message?: string };
-          };
-
-          if (errorMessage) {
-            message = errorMessage;
-          } else if (errorDetails?.reason || errorDetails?.message) {
-            message = errorDetails.reason ?? errorDetails.message ?? message;
-          }
-        }
+        const message = extractConnectionErrorMessage(
+          errorBody,
+          'Unable to verify database connection'
+        );
 
         if (latestConnectionTestRef.current === requestId) {
           setConnectionStatus('error');
@@ -223,11 +245,17 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         return;
       }
 
-      const payload = (await response.json().catch(() => undefined)) as
-        | ConnectionTestResult
-        | undefined;
+      const payload = (await response.json().catch(() => undefined)) as unknown;
 
-      if (payload && payload.status === 'error') {
+      if (!isConnectionTestPayload(payload)) {
+        if (latestConnectionTestRef.current === requestId) {
+          setConnectionStatus('success');
+          setConnectionMessage('Connection successful');
+        }
+        return;
+      }
+
+      if (payload.status === 'error') {
         if (latestConnectionTestRef.current === requestId) {
           setConnectionStatus('error');
           setConnectionMessage(payload.message);
@@ -235,7 +263,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         return;
       }
 
-      const successMessage = payload?.message ?? 'Connection successful';
+      const successMessage = payload.message ?? 'Connection successful';
       if (latestConnectionTestRef.current === requestId) {
         setConnectionStatus('success');
         setConnectionMessage(successMessage);
@@ -394,7 +422,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       onCancel={onClose}
       footer={null}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}

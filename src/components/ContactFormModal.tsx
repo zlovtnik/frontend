@@ -94,7 +94,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
       open={open}
       onCancel={handleCancel}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       width={520}
     >
       <FormProvider {...methods}>

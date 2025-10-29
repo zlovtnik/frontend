@@ -1515,7 +1515,18 @@ export const addressBookService = {
     address: string;
     phone: string;
   }): AsyncResult<ApiResponse<Contact>, AppError> {
-    return transformApiResponse(apiClient.post<unknown>('/address-book', data), mapContact.fromApi);
+    const { gender, ...rest } = data;
+    const payload: Record<string, unknown> = {
+      ...rest,
+    };
+
+    if (gender === 'male') {
+      payload.gender = true;
+    } else if (gender === 'female') {
+      payload.gender = false;
+    }
+
+    return transformApiResponse(apiClient.post<unknown>('/address-book', payload), mapContact.fromApi);
   },
 
   /**
@@ -1547,8 +1558,19 @@ export const addressBookService = {
       phone: string;
     }
   ): AsyncResult<ApiResponse<Contact>, AppError> {
+    const { gender, ...rest } = data;
+    const payload: Record<string, unknown> = {
+      ...rest,
+    };
+
+    if (gender === 'male') {
+      payload.gender = true;
+    } else if (gender === 'female') {
+      payload.gender = false;
+    }
+
     return transformApiResponse(
-      apiClient.put<unknown>(`/address-book/${id}`, data),
+      apiClient.put<unknown>(`/address-book/${id}`, payload),
       mapContact.fromApi
     );
   },
