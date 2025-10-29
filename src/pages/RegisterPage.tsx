@@ -238,7 +238,7 @@ export const RegisterPage: React.FC = () => {
               >
                 I accept the{' '}
                 <a
-                  href="/terms"
+                  href="https://www.example.com/terms"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

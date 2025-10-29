@@ -633,7 +633,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('useAuth called outside AuthProvider - component stack:', new Error().stack);
     }
     throw new Error('useAuth must be used within an AuthProvider');

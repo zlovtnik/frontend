@@ -1307,7 +1307,26 @@ const attachTenantIdToContact = (contact: unknown, tenantId: string): unknown =>
   }
 
   if (!('tenant_id' in record) || record.tenant_id == null) {
-    console.warn('Injecting missing tenantId for contact:', record);
+    const contactId = (() => {
+      if (typeof record.id === 'string' && record.id.trim()) {
+        return record.id.trim();
+      }
+      if (typeof record.contact_id === 'string' && record.contact_id.trim()) {
+        return record.contact_id.trim();
+      }
+      if (typeof record.id === 'number' && Number.isFinite(record.id)) {
+        return String(record.id);
+      }
+      if (typeof record.contact_id === 'number' && Number.isFinite(record.contact_id)) {
+        return String(record.contact_id);
+      }
+      return null;
+    })();
+
+    logger.warn('Injecting missing tenantId for contact', {
+      contactId: contactId ?? 'unknown',
+      tenantIdInjected: true,
+    });
   }
 
   return {
@@ -1605,7 +1624,7 @@ export function resetApiClientCircuitBreaker(): void {
   }
 
   logger.warn('resetApiClientCircuitBreaker called but apiClient is not an HttpClient instance', {
-    apiClientType: typeof apiClient,
+    apiClientType: apiClient?.constructor?.name ?? typeof apiClient,
   });
 }
 

@@ -31,6 +31,8 @@ import type { Tenant } from '@/types/tenant';
 
 const { Title, Text } = Typography;
 
+type BadgeStatus = 'success' | 'warning' | 'error' | 'processing' | 'default';
+
 interface DatabaseInfo {
   status: 'connected' | 'disconnected' | 'error' | 'checking';
   lastChecked?: string;
@@ -191,17 +193,7 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
                   title={
                     <Space>
                       <Text strong>{tenant.name}</Text>
-                      <Badge
-                        status={
-                          statusDisplay.color as
-                          | 'success'
-                          | 'warning'
-                          | 'error'
-                          | 'processing'
-                          | 'default'
-                        }
-                        text={statusDisplay.text}
-                      />
+                      <Badge status={statusDisplay.color as BadgeStatus} text={statusDisplay.text} />
                     </Space>
                   }
                   extra={

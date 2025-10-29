@@ -388,18 +388,20 @@ export const AuthProviderFP: React.FC<AuthProviderFPProps> = ({ children }) => {
    * Logout operation
    */
   const logout = useCallback((): AsyncResult<void, AppError> => {
-    const result = clearAuthStorage();
+    return authService.logout().andThen(() => {
+      const result = clearAuthStorage();
 
-    if (result.isErr()) {
-      console.error('Failed to clear auth storage:', result.error.message);
-      return errAsync(result.error);
-    }
+      if (result.isErr()) {
+        console.error('Failed to clear auth storage:', result.error.message);
+        return errAsync(result.error);
+      }
 
-    if (isMountedRef.current) {
-      setState({ type: 'idle' });
-    }
+      if (isMountedRef.current) {
+        setState({ type: 'idle' });
+      }
 
-    return okAsync(undefined);
+      return okAsync(undefined);
+    });
   }, []);
 
   /**

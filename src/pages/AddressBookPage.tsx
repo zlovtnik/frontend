@@ -503,8 +503,12 @@ export const AddressBookPage: React.FC = () => {
       page: currentPage,
       limit: currentPageSize,
       search: searchTerm || undefined,
+      ...(sorting && {
+        sortField: sorting.field,
+        sortOrder: sorting.order,
+      }),
     });
-  }, [loadContactsWithParams, currentPage, currentPageSize, searchTerm]);
+  }, [loadContactsWithParams, currentPage, currentPageSize, searchTerm, sorting]);
 
   useEffect(() => {
     const loadData = async () => {

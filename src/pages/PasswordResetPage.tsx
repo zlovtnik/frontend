@@ -88,7 +88,6 @@ export const PasswordResetPage: React.FC = () => {
         // After successful reset, navigate to login page after a delay
         navigateTimerRef.current = window.setTimeout(() => {
           navigate('/login');
-          navigateTimerRef.current = null;
         }, 3000);
       } else {
         setSubmitError(result.message);
@@ -162,7 +161,7 @@ export const PasswordResetPage: React.FC = () => {
           percent={getProgressPercent()}
           size="small"
           status={submitError ? 'exception' : submitSuccess ? 'success' : 'active'}
-          aria-label="Progress indicator: visual feedback only, not measured progress"
+          aria-label="Password reset progress"
           style={{ marginBottom: '16px' }}
         />
 
