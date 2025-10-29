@@ -49,7 +49,7 @@ interface SecurityLogger {
    * Increment a metric counter
    * @param metricName - Name of the metric to increment
    * @param tags - Optional tags for the metric
-   * 
+   *
    * Note: This method is optional and should only be implemented when a metrics backend is available.
    * In production environments with telemetry, implement this method to track auth events.
    * In development or test environments, this can be omitted.

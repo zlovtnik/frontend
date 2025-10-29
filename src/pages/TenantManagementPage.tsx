@@ -52,7 +52,10 @@ export const TenantManagementPage: React.FC = () => {
       const apiResponse = result.value;
       if (!isApiSuccess(apiResponse)) {
         setError(apiResponse.error?.message || 'Failed to load tenants');
-        notifications.notifyTenantError('load', apiResponse.error?.message || 'Failed to load tenants');
+        notifications.notifyTenantError(
+          'load',
+          apiResponse.error?.message || 'Failed to load tenants'
+        );
         return;
       }
 
@@ -96,7 +99,11 @@ export const TenantManagementPage: React.FC = () => {
 
         const apiResponse = result.value;
         if (!isApiSuccess(apiResponse)) {
-          notifications.notifyTenantError('delete', apiResponse.error?.message || 'Failed to delete tenant', tenant.name);
+          notifications.notifyTenantError(
+            'delete',
+            apiResponse.error?.message || 'Failed to delete tenant',
+            tenant.name
+          );
           return;
         }
 

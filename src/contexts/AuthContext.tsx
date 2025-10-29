@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authService } from '../services/api';
-import type { User, Tenant, LoginCredentials, RegisterData, PasswordResetConfirm } from '../types/auth';
+import type {
+  User,
+  Tenant,
+  LoginCredentials,
+  RegisterData,
+  PasswordResetConfirm,
+} from '../types/auth';
 import { asTenantId, asUserId } from '../types/ids';
 
 export interface AuthContextType {
@@ -14,7 +20,9 @@ export interface AuthContextType {
   refreshToken: () => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ isSuccess: boolean; message: string }>;
-  confirmPasswordReset: (data: PasswordResetConfirm) => Promise<{ isSuccess: boolean; message: string }>;
+  confirmPasswordReset: (
+    data: PasswordResetConfirm
+  ) => Promise<{ isSuccess: boolean; message: string }>;
   // JWT Authentication Integration with backend API
   // - Real authentication endpoints integration with existing Actix Web backend
   // - JWT token storage and automatic Authorization header inclusion
@@ -377,7 +385,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('tenant');
 
-
       // Re-throw with the actual error message from the server
       if (error instanceof Error) {
         throw error;
@@ -519,7 +526,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('tenant');
 
-
       // Re-throw with the actual error message from the server
       if (error instanceof Error) {
         throw error;
@@ -531,7 +537,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const requestPasswordReset = async (email: string): Promise<{ isSuccess: boolean; message: string }> => {
+  const requestPasswordReset = async (
+    email: string
+  ): Promise<{ isSuccess: boolean; message: string }> => {
     setIsLoading(true);
     try {
       const resetResult = await authService.requestPasswordReset(email);
@@ -548,27 +556,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return {
         isSuccess: true,
-        message: response.message ?? 'Password reset email sent successfully'
+        message: response.message ?? 'Password reset email sent successfully',
       };
     } catch (error: unknown) {
-
       if (error instanceof Error) {
         return {
           isSuccess: false,
-          message: error.message
+          message: error.message,
         };
       }
 
       return {
         isSuccess: false,
-        message: 'Password reset request failed'
+        message: 'Password reset request failed',
       };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const confirmPasswordReset = async (data: PasswordResetConfirm): Promise<{ isSuccess: boolean; message: string }> => {
+  const confirmPasswordReset = async (
+    data: PasswordResetConfirm
+  ): Promise<{ isSuccess: boolean; message: string }> => {
     setIsLoading(true);
     try {
       const resetResult = await authService.confirmPasswordReset(data);
@@ -585,26 +594,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return {
         isSuccess: true,
-        message: response.message ?? 'Password reset successfully completed'
+        message: response.message ?? 'Password reset successfully completed',
       };
     } catch (error: unknown) {
-
       if (error instanceof Error) {
         return {
           isSuccess: false,
-          message: error.message
+          message: error.message,
         };
       }
 
       return {
         isSuccess: false,
-        message: 'Password reset confirmation failed'
+        message: 'Password reset confirmation failed',
       };
     } finally {
       setIsLoading(false);
     }
   };
-
 
   const value: AuthContextType = {
     user,
@@ -626,6 +633,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
+    console.error('useAuth called outside AuthProvider - component stack:', new Error().stack);
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

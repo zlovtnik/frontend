@@ -122,11 +122,7 @@ export const RegisterPage: React.FC = () => {
           data-testid="register-form"
         >
           <Form.Item
-            label={
-              <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                First Name
-              </span>
-            }
+            label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>First Name</span>}
             name="firstName"
             rules={[{ required: true, message: 'First name is required' }]}
           >
@@ -140,11 +136,7 @@ export const RegisterPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label={
-              <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                Last Name
-              </span>
-            }
+            label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Last Name</span>}
             name="lastName"
             rules={[{ required: true, message: 'Last name is required' }]}
           >
@@ -158,11 +150,7 @@ export const RegisterPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label={
-              <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                Email
-              </span>
-            }
+            label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Email</span>}
             name="email"
             rules={[
               { required: true, message: 'Email is required' },
@@ -197,9 +185,7 @@ export const RegisterPage: React.FC = () => {
 
           <Form.Item
             label={
-              <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                Confirm Password
-              </span>
+              <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Confirm Password</span>
             }
             name="confirmPassword"
             dependencies={['password']}
@@ -230,7 +216,9 @@ export const RegisterPage: React.FC = () => {
             rules={[
               {
                 validator: (_, value) =>
-                  value ? Promise.resolve() : Promise.reject(new Error('You must accept the terms and conditions')),
+                  value
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('You must accept the terms and conditions')),
               },
             ]}
           >
@@ -239,11 +227,24 @@ export const RegisterPage: React.FC = () => {
                 type="checkbox"
                 id="acceptTerms"
                 checked={acceptTerms}
-                onChange={e => setAcceptTerms(e.target.checked)}
+                onChange={e => {
+                  setAcceptTerms(e.target.checked);
+                }}
                 style={{ width: '18px', height: '18px' }}
               />
-              <label htmlFor="acceptTerms" style={{ color: 'var(--primary-600)', marginLeft: '8px' }}>
-                I accept the <a href="#" onClick={e => e.preventDefault()}>Terms and Conditions</a>
+              <label
+                htmlFor="acceptTerms"
+                style={{ color: 'var(--primary-600)', marginLeft: '8px' }}
+              >
+                I accept the{' '}
+                <a
+                  href="#"
+                  onClick={e => {
+                    e.preventDefault();
+                  }}
+                >
+                  Terms and Conditions
+                </a>
               </label>
             </Flex>
           </Form.Item>
@@ -267,8 +268,7 @@ export const RegisterPage: React.FC = () => {
                 }}
               />
             </Form.Item>
-          )
-          }
+          )}
 
           <Form.Item>
             <Button
@@ -288,9 +288,11 @@ export const RegisterPage: React.FC = () => {
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
           <Typography.Text>
             Already have an account?{' '}
-            <Button 
-              type="link" 
-              onClick={() => navigate('/login')}
+            <Button
+              type="link"
+              onClick={() => {
+                navigate('/login');
+              }}
               style={{ padding: 0 }}
             >
               Sign in

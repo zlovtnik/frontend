@@ -2,6 +2,8 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { Card, Row, Col, Statistic, Alert, List, Avatar, Space, Button, Tag, Divider } from 'antd';
+import { CardSkeletonGrid } from '@/components/CardSkeletonGrid';
+import { SectionSkeleton } from '@/components/skeletons/SectionSkeleton';
 import {
   ContactsOutlined,
   HeartOutlined,
@@ -14,7 +16,7 @@ import {
 } from '@ant-design/icons';
 
 export const DashboardPage: React.FC = () => {
-  const { user, tenant } = useAuth();
+  const { user, tenant, isLoading } = useAuth();
 
   const recentActivities = [
     {
@@ -72,6 +74,8 @@ export const DashboardPage: React.FC = () => {
     return COLOR_MAP[color] ?? COLOR_MAP.default!;
   };
 
+  const isAuthLoading = isLoading;
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {/* Welcome Section */}
@@ -84,61 +88,65 @@ export const DashboardPage: React.FC = () => {
       />
 
       {/* Quick Stats */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
-          <Card
-            hoverable
-            actions={[
-              <Link to="/address-book" key="view">
-                <Button type="primary" block>
-                  View Address Book
-                </Button>
-              </Link>,
-            ]}
-          >
-            <Card.Meta
-              avatar={<ContactsOutlined style={{ fontSize: 24 }} />}
-              title="Address Book"
-              description="Manage your contacts and addresses"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card hoverable>
-            <Card.Meta
-              avatar={<HeartOutlined style={{ fontSize: 24, color: 'green' }} />}
-              title="System Health"
-              description="Check API and system status"
-            />
-            <Divider />
-            <Space>
-              <CheckCircleOutlined style={{ color: 'green' }} />
-              <span>All systems operational</span>
-            </Space>
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card hoverable>
-            <Card.Meta
-              avatar={<HeartOutlined style={{ fontSize: 24 }} />}
-              title="User Profile"
-              description="Manage your account settings"
-            />
-            <Divider />
-            <div style={{ fontSize: '12px' }}>
-              <div>
-                <strong>Email:</strong> {user?.email}
+      {isAuthLoading ? (
+        <CardSkeletonGrid />
+      ) : (
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <Card
+              hoverable
+              actions={[
+                <Link to="/address-book" key="view">
+                  <Button type="primary" block loading={isAuthLoading} disabled={isAuthLoading}>
+                    View Address Book
+                  </Button>
+                </Link>,
+              ]}
+            >
+              <Card.Meta
+                avatar={<ContactsOutlined style={{ fontSize: 24 }} />}
+                title="Address Book"
+                description="Manage your contacts and addresses"
+              />
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card hoverable>
+              <Card.Meta
+                avatar={<HeartOutlined style={{ fontSize: 24, color: 'green' }} />}
+                title="System Health"
+                description="Check API and system status"
+              />
+              <Divider />
+              <Space>
+                <CheckCircleOutlined style={{ color: 'green' }} />
+                <span>All systems operational</span>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card hoverable>
+              <Card.Meta
+                avatar={<HeartOutlined style={{ fontSize: 24 }} />}
+                title="User Profile"
+                description="Manage your account settings"
+              />
+              <Divider />
+              <div style={{ fontSize: '12px' }}>
+                <div>
+                  <strong>Email:</strong> {user?.email}
+                </div>
+                <div>
+                  <strong>Username:</strong> {user?.username}
+                </div>
+                <div>
+                  <strong>Roles:</strong> {user?.roles?.join(', ') || 'None'}
+                </div>
               </div>
-              <div>
-                <strong>Username:</strong> {user?.username}
-              </div>
-              <div>
-                <strong>Roles:</strong> {user?.roles?.join(', ') || 'None'}
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Recent Activity */}
       <Card
@@ -150,36 +158,52 @@ export const DashboardPage: React.FC = () => {
         }
         hoverable
       >
-        <List
-          dataSource={recentActivities}
-          renderItem={item => (
-            <List.Item>
-              <List.Item.Meta title={item.title} description={item.description} />
-              <Tag>{item.time}</Tag>
-            </List.Item>
-          )}
-        />
+        {isAuthLoading ? (
+          <SectionSkeleton
+            rows={4}
+            ariaLabel="Loading recent activity"
+            testId="dashboard-activity-skeleton"
+          />
+        ) : (
+          <List
+            dataSource={recentActivities}
+            renderItem={item => (
+              <List.Item>
+                <List.Item.Meta title={item.title} description={item.description} />
+                <Tag>{item.time}</Tag>
+              </List.Item>
+            )}
+          />
+        )}
       </Card>
 
       {/* Technology Stack */}
       <Card title="Technology Stack" hoverable>
-        <Row gutter={[16, 16]}>
-          {technologies.map(tech => (
-            <Col xs={12} sm={6} key={tech.name}>
-              <Card size="small" style={{ textAlign: 'center' }}>
-                <Avatar
-                  size="large"
-                  icon={tech.icon}
-                  style={{ backgroundColor: getColor(tech.color) }}
-                />
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontWeight: 500 }}>{tech.name}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>{tech.version}</div>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        {isAuthLoading ? (
+          <SectionSkeleton
+            rows={4}
+            ariaLabel="Loading technology stack"
+            testId="dashboard-tech-skeleton"
+          />
+        ) : (
+          <Row gutter={[16, 16]}>
+            {technologies.map(tech => (
+              <Col xs={12} sm={6} key={tech.name}>
+                <Card size="small" style={{ textAlign: 'center' }}>
+                  <Avatar
+                    size="large"
+                    icon={tech.icon}
+                    style={{ backgroundColor: getColor(tech.color) }}
+                  />
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontWeight: 500 }}>{tech.name}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>{tech.version}</div>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
       </Card>
     </Space>
   );

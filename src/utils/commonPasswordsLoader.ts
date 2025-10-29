@@ -52,14 +52,14 @@ export class CommonPasswordsLoader {
       if (!this.config.isSSR && runtimeIsSSR) {
         throw new Error(
           'Configuration mismatch: isSSR is set to false but window is undefined (SSR environment). ' +
-          'The isSSR config must match the actual runtime environment.'
+            'The isSSR config must match the actual runtime environment.'
         );
       }
 
       if (this.config.isSSR && !runtimeIsSSR) {
         throw new Error(
           'Configuration mismatch: isSSR is set to true but window is defined (client environment). ' +
-          'The isSSR config must match the actual runtime environment.'
+            'The isSSR config must match the actual runtime environment.'
         );
       }
     }
@@ -306,7 +306,7 @@ export class CommonPasswordsLoader {
     }
 
     return uniquePasswords;
-}
+  }
 
   /**
    * Reset loader for testing

@@ -19,6 +19,12 @@ export interface BaseError {
   readonly cause?: unknown;
   readonly retryable?: boolean;
   readonly statusCode?: number;
+  /**
+   * Identifier supplied by the upstream service (for example an `X-Request-Id` header)
+   * that can be used to correlate logs and support tickets. Populate this for
+   * errors originating from HTTP/API calls when the header is available; leave
+   * undefined for client-only or synthetic errors where no server correlation ID exists.
+   */
   readonly requestId?: string;
 }
 
@@ -97,6 +103,7 @@ export const isServerError = (error: AppError): error is ServerError =>
 export const isTenantError = (error: AppError): error is TenantError =>
   error.type === API_ERROR_TYPES.Tenant;
 
+/** @internal Options consumed by the error factory helpers. */
 interface ErrorFactoryOptions {
   code?: string;
   cause?: unknown;
@@ -111,16 +118,17 @@ const createBaseError = <Type extends ApiErrorType>(
   message: string,
   details?: Record<string, unknown>,
   options?: ErrorFactoryOptions
-) => ({
-  type,
-  message,
-  details,
-  code: options?.code,
-  cause: options?.cause,
-  statusCode: options?.statusCode,
-  retryable: options?.retryable,
-  requestId: options?.requestId,
-}) as BaseError & { type: Type };
+) =>
+  ({
+    type,
+    message,
+    details,
+    code: options?.code,
+    cause: options?.cause,
+    statusCode: options?.statusCode,
+    retryable: options?.retryable,
+    requestId: options?.requestId,
+  }) as BaseError & { type: Type };
 
 export const createValidationError = (
   message: string,

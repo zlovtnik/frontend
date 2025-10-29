@@ -27,7 +27,7 @@ import {
   InfoCircleOutlined,
   CopyOutlined,
 } from '@ant-design/icons';
-import { Tenant } from '@/types/tenant';
+import type { Tenant } from '@/types/tenant';
 
 const { Title, Text } = Typography;
 
@@ -117,6 +117,10 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
   const copyConnectionString = useCallback(
     async (connectionString: string) => {
       try {
+        if (connectionString?.trim().length === 0) {
+          message.warning('No connection string to copy');
+          return;
+        }
         await navigator.clipboard.writeText(connectionString);
         message.success('Connection string copied');
       } catch (error) {

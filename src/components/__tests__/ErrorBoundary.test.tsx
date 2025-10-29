@@ -16,7 +16,11 @@ import {
 } from '../../types/errors';
 
 // Component that throws during render
-const RenderErrorComponent: React.FC<{ errorMessage: string }> = ({ errorMessage }: { errorMessage: string }) => {
+const RenderErrorComponent: React.FC<{ errorMessage: string }> = ({
+  errorMessage,
+}: {
+  errorMessage: string;
+}) => {
   throw new Error(errorMessage);
 };
 
@@ -2774,25 +2778,25 @@ describe('ErrorBoundary Component', () => {
   describe('Additional Integration Tests', () => {
     it('should work with transformResultError prop', () => {
       const transformMock = () => ok(createNetworkError('Transformed error'));
-      
+
       renderWithProviders(
         <ErrorBoundary transformResultError={transformMock}>
           <div data-testid="transform-test">Transform test content</div>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByTestId('transform-test')).toBeInTheDocument();
     });
 
     it('should work with reportResultError prop', () => {
       const reportMock = () => ok(undefined);
-      
+
       renderWithProviders(
         <ErrorBoundary reportResultError={reportMock}>
           <div data-testid="report-test">Report test content</div>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByTestId('report-test')).toBeInTheDocument();
     });
 
@@ -2803,13 +2807,13 @@ describe('ErrorBoundary Component', () => {
           recover: () => ok(<div>Recovered</div>),
         },
       ];
-      
+
       renderWithProviders(
         <ErrorBoundary recoveryStrategies={strategies}>
           <div data-testid="strategy-test">Strategy test content</div>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByTestId('strategy-test')).toBeInTheDocument();
     });
 
@@ -2819,7 +2823,7 @@ describe('ErrorBoundary Component', () => {
           <div data-testid="empty-strategy-test">Empty strategy test content</div>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByTestId('empty-strategy-test')).toBeInTheDocument();
     });
 
@@ -2829,7 +2833,7 @@ describe('ErrorBoundary Component', () => {
           <div>Test content</div>
         </ErrorBoundary>
       );
-      
+
       // Test that ErrorBoundary component renders without errors
       expect(screen.getByText('Test content')).toBeInTheDocument();
     });
@@ -2840,7 +2844,7 @@ describe('ErrorBoundary Component', () => {
           <div>Test content</div>
         </ErrorBoundary>
       );
-      
+
       // Test that ErrorBoundary component renders without errors
       expect(screen.getByText('Test content')).toBeInTheDocument();
     });
@@ -2851,7 +2855,7 @@ describe('ErrorBoundary Component', () => {
           <div>Test content</div>
         </ErrorBoundary>
       );
-      
+
       // Test that ErrorBoundary component renders without errors
       expect(screen.getByText('Test content')).toBeInTheDocument();
     });
@@ -2862,7 +2866,7 @@ describe('ErrorBoundary Component', () => {
           <div>Test content</div>
         </ErrorBoundary>
       );
-      
+
       // Test that ErrorBoundary component renders without errors
       expect(screen.getByText('Test content')).toBeInTheDocument();
     });
@@ -2873,7 +2877,7 @@ describe('ErrorBoundary Component', () => {
           <div>Test content</div>
         </ErrorBoundary>
       );
-      
+
       // Test that ErrorBoundary component renders without errors
       expect(screen.getByText('Test content')).toBeInTheDocument();
     });
@@ -2884,7 +2888,7 @@ describe('ErrorBoundary Component', () => {
           <div>Test content</div>
         </ErrorBoundary>
       );
-      
+
       // Test that ErrorBoundary component renders without errors
       expect(screen.getByText('Test content')).toBeInTheDocument();
     });

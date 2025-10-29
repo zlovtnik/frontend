@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { asContactId, asTenantId, asUserId } from '../types/ids';
+import { API_ERROR_TYPES } from '../types/errors';
+import type { ApiErrorType } from '../types/errors';
 
 const nonEmptyString = z.string().min(1, 'Value is required');
 
@@ -74,6 +76,8 @@ const tenantSubscriptionSchema = z.object({
     }),
   limits: tenantLimitsSchema,
 });
+
+const apiErrorTypeValues = Object.values(API_ERROR_TYPES) as [ApiErrorType, ...ApiErrorType[]];
 
 export const authTenantSchema = z.object({
   id: z
@@ -201,16 +205,7 @@ export const paginatedTenantResponseSchema = z.object({
 });
 
 export const apiErrorSchema = z.object({
-  type: z.enum([
-    'NETWORK_ERROR',
-    'TIMEOUT_ERROR',
-    'VALIDATION_ERROR',
-    'AUTH_ERROR',
-    'FORBIDDEN_ERROR',
-    'NOT_FOUND',
-    'SERVER_ERROR',
-    'TENANT_ERROR',
-  ]),
+  type: z.enum(apiErrorTypeValues),
   message: z.string(),
   code: z.string().optional(),
   details: z.record(z.string(), z.unknown()).optional(),

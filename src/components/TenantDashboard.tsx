@@ -33,7 +33,20 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
-import { Tenant } from '@/types/tenant';
+import type { Tenant } from '@/types/tenant';
+import { DatabaseManagementModal } from './DatabaseManagementModal';
+
+interface TenantDashboardProps {
+  tenants: Tenant[];
+  onTenantSelect: (tenant: Tenant) => void;
+  onTenantEdit: (tenant: Tenant) => void;
+  onTenantDelete: (tenant: Tenant) => void;
+  onTenantCreate: () => void;
+  onRefresh?: () => void;
+  loading?: boolean;
+}
+
+const { Title, Text } = Typography;
 
 interface TenantStats {
   total: number;
@@ -91,7 +104,7 @@ export const TenantDashboard: React.FC<TenantDashboardProps> = ({
 
   // Get recent tenant activities
   const recentActivities = useMemo(() => {
-    return tenants
+    return [...tenants]
       .sort((a, b) => {
         const dateA = a.updated_at != null ? new Date(a.updated_at).getTime() : 0;
         const dateB = b.updated_at != null ? new Date(b.updated_at).getTime() : 0;

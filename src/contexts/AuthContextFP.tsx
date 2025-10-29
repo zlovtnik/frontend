@@ -51,16 +51,16 @@ export type AuthStateFP =
   | { type: 'idle' }
   | { type: 'loading' }
   | {
-    type: 'authenticated';
-    user: User;
-    tenant: Tenant;
-    token: string;
-  }
+      type: 'authenticated';
+      user: User;
+      tenant: Tenant;
+      token: string;
+    }
   | {
-    type: 'error';
-    error: AppError;
-    previousState?: Exclude<AuthStateFP, { type: 'error' }>;
-  };
+      type: 'error';
+      error: AppError;
+      previousState?: Exclude<AuthStateFP, { type: 'error' }>;
+    };
 
 /**
  * FP-based authentication context interface
@@ -389,13 +389,15 @@ export const AuthProviderFP: React.FC<AuthProviderFPProps> = ({ children }) => {
    */
   const logout = useCallback((): AsyncResult<void, AppError> => {
     const result = clearAuthStorage();
-    result.map(() => {
-      if (isMountedRef.current) {
-        setState({ type: 'idle' });
-      }
-    }).mapErr(error => {
-      console.error('Failed to clear auth storage:', error.message);
-    });
+    result
+      .map(() => {
+        if (isMountedRef.current) {
+          setState({ type: 'idle' });
+        }
+      })
+      .mapErr(error => {
+        console.error('Failed to clear auth storage:', error.message);
+      });
     return okAsync(undefined);
   }, []);
 

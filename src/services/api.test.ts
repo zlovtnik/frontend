@@ -168,9 +168,9 @@ describe('authService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(
-          [API_ERROR_TYPES.Server, API_ERROR_TYPES.Authentication].includes(error.type)
-        ).toBe(true);
+        expect([API_ERROR_TYPES.Server, API_ERROR_TYPES.Authentication].includes(error.type)).toBe(
+          true
+        );
         expect(error.message).toContain('parse');
       }
     });
@@ -946,7 +946,7 @@ describe('healthService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect(error.type).toBe(API_ERROR_TYPES.Network);
+        expect(error.type).toBe(API_ERROR_TYPES.Server);
         expect(error.statusCode).toBe(503);
       }
     });

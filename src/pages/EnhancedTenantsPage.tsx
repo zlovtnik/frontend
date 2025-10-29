@@ -211,7 +211,7 @@ export const EnhancedTenantsPage: React.FC = () => {
           error: error instanceof Error ? error.message : 'Unknown error',
           context: 'tenant_search',
           query: searchState.query,
-          filters: searchState.filters
+          filters: searchState.filters,
         });
         message.error('Search failed. Please try again.');
       }

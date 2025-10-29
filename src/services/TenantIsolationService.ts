@@ -44,13 +44,16 @@ const getAllowedTables = (): Set<string> => {
   const envTables = process.env.TENANT_ALLOWED_TABLES;
   if (envTables) {
     try {
-      const tables = envTables.split(',').map(table => table.trim()).filter(table => table.length > 0);
+      const tables = envTables
+        .split(',')
+        .map(table => table.trim())
+        .filter(table => table.length > 0);
       return new Set(tables);
     } catch (error) {
       console.warn('Failed to parse TENANT_ALLOWED_TABLES, using defaults:', error);
     }
   }
-  
+
   // Default allowed tables
   return new Set([
     'tenant_contacts',
@@ -71,76 +74,43 @@ const ALLOWED_TABLES = getAllowedTables();
  */
 // Table-specific allowed columns to prevent cross-table column access
 const TABLE_ALLOWED_COLUMNS = new Map([
-  ['tenant_contacts', new Set([
-    'id',
-    'tenant_id',
-    'first_name',
-    'last_name',
-    'email',
-    'phone',
-    'company',
-    'job_title',
-    'created_at',
-    'updated_at',
-  ])],
-  ['tenant_users', new Set([
-    'id',
-    'tenant_id',
-    'user_id',
-    'role',
-    'status',
-    'created_at',
-    'updated_at',
-  ])],
-  ['tenant_audit_log', new Set([
-    'id',
-    'tenant_id',
-    'user_id',
-    'action',
-    'table_name',
-    'record_id',
-    'created_at',
-  ])],
-  ['tenant_activity_log', new Set([
-    'id',
-    'tenant_id',
-    'user_id',
-    'activity_type',
-    'description',
-    'created_at',
-  ])],
-  ['tenant_metrics', new Set([
-    'id',
-    'tenant_id',
-    'metric_name',
-    'value',
-    'count',
-    'created_at',
-  ])],
-  ['tenant_performance', new Set([
-    'id',
-    'tenant_id',
-    'endpoint',
-    'response_time',
-    'status_code',
-    'created_at',
-  ])],
-  ['tenant_settings', new Set([
-    'id',
-    'tenant_id',
-    'name',
-    'value',
-    'type',
-    'created_at',
-    'updated_at',
-  ])],
-  ['tenant_features', new Set([
-    'id',
-    'tenant_id',
-    'feature_name',
-    'is_enabled',
-    'created_at',
-  ])],
+  [
+    'tenant_contacts',
+    new Set([
+      'id',
+      'tenant_id',
+      'first_name',
+      'last_name',
+      'email',
+      'phone',
+      'company',
+      'job_title',
+      'created_at',
+      'updated_at',
+    ]),
+  ],
+  [
+    'tenant_users',
+    new Set(['id', 'tenant_id', 'user_id', 'role', 'status', 'created_at', 'updated_at']),
+  ],
+  [
+    'tenant_audit_log',
+    new Set(['id', 'tenant_id', 'user_id', 'action', 'table_name', 'record_id', 'created_at']),
+  ],
+  [
+    'tenant_activity_log',
+    new Set(['id', 'tenant_id', 'user_id', 'activity_type', 'description', 'created_at']),
+  ],
+  ['tenant_metrics', new Set(['id', 'tenant_id', 'metric_name', 'value', 'count', 'created_at'])],
+  [
+    'tenant_performance',
+    new Set(['id', 'tenant_id', 'endpoint', 'response_time', 'status_code', 'created_at']),
+  ],
+  [
+    'tenant_settings',
+    new Set(['id', 'tenant_id', 'name', 'value', 'type', 'created_at', 'updated_at']),
+  ],
+  ['tenant_features', new Set(['id', 'tenant_id', 'feature_name', 'is_enabled', 'created_at'])],
 ]);
 
 // Fallback for unknown tables - deny all columns for security
@@ -167,11 +137,13 @@ function validateColumnName(table: string, column: string): void {
   if (!column || typeof column !== 'string' || column.trim() === '') {
     throw new Error('Column name must be a non-empty string');
   }
-  
+
   // Get allowed columns for this specific table
   const allowedColumns = TABLE_ALLOWED_COLUMNS.get(table) || DEFAULT_ALLOWED_COLUMNS;
   if (!allowedColumns.has(column)) {
-    throw new Error(`Invalid column name: ${column} for table: ${table}. Column must be whitelisted for this table.`);
+    throw new Error(
+      `Invalid column name: ${column} for table: ${table}. Column must be whitelisted for this table.`
+    );
   }
 }
 

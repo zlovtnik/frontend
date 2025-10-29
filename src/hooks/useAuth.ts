@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useAuth as useAuthContext } from '../contexts/AuthContext.fp';
+import { useAuth as useAuthContext } from '../contexts/AuthContext';
 import type { Result } from '../types/fp';
 import { ok, err } from 'neverthrow';
 import type { AuthFlowError, CredentialValidationError, StorageError } from '../types/errors';
@@ -75,8 +75,51 @@ const mapTokenErrorToAuthFlowError = (error: TokenError): AuthFlowError => {
 export function useAuth() {
   const auth = useAuthContext();
 
+  const hasErrorProperty = (value: unknown): value is { error: string | null } => {
+    return typeof value === 'object' && value !== null && 'error' in value;
+  };
+
+  const hasClearErrorProperty = (value: unknown): value is { clearError: () => void } => {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'clearError' in value &&
+      typeof (value as { clearError?: unknown }).clearError === 'function'
+    );
+  };
+
   // Wrap imperative context operations in a memoized Result-based API for composability
   const resultApi = useMemo(() => {
+    const isNeverthrowResult = (value: unknown): value is Result<unknown, unknown> => {
+      if (typeof value !== 'object' || value === null) {
+        return false;
+      }
+
+      const candidate = value as { isOk?: unknown; isErr?: unknown };
+      return typeof candidate.isOk === 'function' && typeof candidate.isErr === 'function';
+    };
+
+    const mapThrownErrorToAuthFlowError = (error: unknown): AuthFlowError => {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      return AuthFlowErrors.serverError(500, message);
+    };
+
+    const login = async (
+      credentials: LoginCredentials
+    ): Promise<Result<void, AuthFlowError | CredentialValidationError>> => {
+      try {
+        const maybeResult = await auth.login(credentials);
+
+        if (isNeverthrowResult(maybeResult)) {
+          return maybeResult as Result<void, AuthFlowError | CredentialValidationError>;
+        }
+
+        return ok(undefined);
+      } catch (error) {
+        return err(mapThrownErrorToAuthFlowError(error));
+      }
+    };
+
     const requireAuthResult = (): Result<boolean, AuthFlowError> => {
       if (auth.isAuthenticated) {
         return ok(true);
@@ -139,7 +182,7 @@ export function useAuth() {
       getUserResult().andThen(user => validateTenantAccess(user, tenantId));
 
     return {
-      login: (credentials: LoginCredentials) => auth.login(credentials),
+      login,
       logout: () => auth.logout(),
       refreshToken: () => auth.refreshToken(),
       requireAuth: requireAuthResult,
@@ -156,14 +199,17 @@ export function useAuth() {
     };
   }, [auth]);
 
+  const error = hasErrorProperty(auth) ? auth.error : null;
+  const clearError = hasClearErrorProperty(auth) ? auth.clearError : () => undefined;
+
   return {
     // Original auth state
     user: auth.user,
     tenant: auth.tenant,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
-    error: auth.error,
-    clearError: auth.clearError,
+    error,
+    clearError,
 
     // Result-based API (spread last to ensure these override)
     ...resultApi,

@@ -11,7 +11,7 @@ const HomePage = lazy(() =>
   import('./pages/HomePage').then(module => ({ default: module.HomePage }))
 );
 const LoginPage = lazy(() =>
-  import('./pages/LoginPage').then(module => ({ default: module.LoginPage }))
+  import('./pages/LoginPage.fp').then(module => ({ default: module.LoginPageFP }))
 );
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage }))

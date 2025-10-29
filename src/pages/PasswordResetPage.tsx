@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, Form, Button, Typography, Alert, Flex, Input, Steps } from 'antd';
+import { Card, Form, Button, Typography, Alert, Flex, Input, Steps, Progress } from 'antd';
 
 interface RequestResetFormValues {
   email: string;
@@ -22,6 +22,22 @@ export const PasswordResetPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0); // 0 = request reset, 1 = confirm reset
   const [resetEmail, setResetEmail] = useState('');
+  const navigateTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navigateTimerRef.current != null) {
+        clearTimeout(navigateTimerRef.current);
+      }
+    };
+  }, []);
+
+  const getProgressPercent = () => {
+    if (currentStep === 0) {
+      return isSubmitting ? 35 : 0;
+    }
+    return isSubmitting ? 85 : 50;
+  };
 
   const onRequestReset = async (values: RequestResetFormValues) => {
     if (isSubmitting) return;
@@ -32,7 +48,7 @@ export const PasswordResetPage: React.FC = () => {
 
     try {
       const result = await requestPasswordReset(values.email);
-      
+
       if (result.isSuccess) {
         setSubmitSuccess(result.message);
         setResetEmail(values.email);
@@ -61,11 +77,11 @@ export const PasswordResetPage: React.FC = () => {
         newPassword: values.newPassword,
         confirmPassword: values.confirmPassword,
       });
-      
+
       if (result.isSuccess) {
         setSubmitSuccess(result.message);
         // After successful reset, navigate to login page after a delay
-        setTimeout(() => {
+        navigateTimerRef.current = window.setTimeout(() => {
           navigate('/login');
         }, 3000);
       } else {
@@ -81,6 +97,7 @@ export const PasswordResetPage: React.FC = () => {
 
   const onBackToRequest = () => {
     setCurrentStep(0);
+    form.resetFields();
     setSubmitError(null);
     setSubmitSuccess(null);
   };
@@ -131,6 +148,14 @@ export const PasswordResetPage: React.FC = () => {
           },
         }}
       >
+        <Progress
+          percent={getProgressPercent()}
+          size="small"
+          status={submitError ? 'exception' : submitSuccess ? 'success' : 'active'}
+          aria-live="polite"
+          style={{ marginBottom: '16px' }}
+        />
+
         <Steps
           size="small"
           current={currentStep}
@@ -168,11 +193,7 @@ export const PasswordResetPage: React.FC = () => {
               data-testid="request-reset-form"
             >
               <Form.Item
-                label={
-                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                    Email
-                  </span>
-                }
+                label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Email</span>}
                 name="email"
                 rules={[
                   { required: true, message: 'Email is required' },
@@ -265,9 +286,7 @@ export const PasswordResetPage: React.FC = () => {
             >
               <Form.Item
                 label={
-                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                    Reset Token
-                  </span>
+                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Reset Token</span>
                 }
                 name="token"
                 rules={[{ required: true, message: 'Reset token is required' }]}
@@ -282,7 +301,9 @@ export const PasswordResetPage: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>New Password</span>}
+                label={
+                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>New Password</span>
+                }
                 name="newPassword"
                 rules={[
                   { required: true, message: 'New password is required' },
@@ -384,9 +405,15 @@ export const PasswordResetPage: React.FC = () => {
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
           <Typography.Text>
-            <Button 
-              type="link" 
-              onClick={currentStep === 0 ? () => navigate('/login') : onBackToRequest}
+            <Button
+              type="link"
+              onClick={
+                currentStep === 0
+                  ? () => {
+                      navigate('/login');
+                    }
+                  : onBackToRequest
+              }
               style={{ padding: 0 }}
             >
               {currentStep === 0 ? 'Back to Sign In' : 'Back to Request Reset'}

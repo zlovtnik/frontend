@@ -29,8 +29,12 @@ import {
 } from '@ant-design/icons';
 import type { Tenant } from '@/types/tenant';
 import { useTenantNotifications, type TenantOperationResult } from '@/hooks/useTenantNotifications';
+import { isValidPostgresConnectionString } from '@/validation/schemas';
 
 const { Title, Text } = Typography;
+
+const DATABASE_URL_ERROR_MESSAGE =
+  'Please enter a valid PostgreSQL URL (postgres://...) or connection string (key=value pairs)';
 
 interface TenantFormProps {
   open: boolean;
@@ -110,17 +114,14 @@ export const TenantForm: React.FC<TenantFormProps> = ({
 
   // Validate database URL
   const validateDatabaseUrl = useCallback((url: string): string | null => {
-    if (url?.trim().length === 0) {
+    const trimmed = url?.trim() ?? '';
+
+    if (trimmed.length === 0) {
       return 'Database URL is required';
     }
 
-    try {
-      const urlObj = new URL(url);
-      if (!['postgresql:', 'mysql:', 'sqlite:'].includes(urlObj.protocol)) {
-        return 'Database URL must use postgresql, mysql, or sqlite protocol';
-      }
-    } catch {
-      return 'Database URL must be a valid URL';
+    if (!isValidPostgresConnectionString(trimmed)) {
+      return DATABASE_URL_ERROR_MESSAGE;
     }
 
     return null;
@@ -128,8 +129,15 @@ export const TenantForm: React.FC<TenantFormProps> = ({
 
   // Test database connection
   const testDatabaseConnection = useCallback(async (url: string) => {
-    if (url?.trim().length === 0) {
+    const trimmed = url?.trim() ?? '';
+
+    if (trimmed.length === 0) {
       setConnectionStatus('idle');
+      return;
+    }
+
+    if (!isValidPostgresConnectionString(trimmed)) {
+      setConnectionStatus('error');
       return;
     }
 
@@ -139,15 +147,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       // Simulate connection test (replace with actual implementation)
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Mock validation logic
-      const isValid =
-        url.includes('postgresql://') || url.includes('mysql://') || url.includes('sqlite://');
-
-      if (isValid) {
-        setConnectionStatus('success');
-      } else {
-        setConnectionStatus('error');
-      }
+      setConnectionStatus('success');
     } catch (error) {
       setConnectionStatus('error');
     }
@@ -368,7 +368,21 @@ export const TenantForm: React.FC<TenantFormProps> = ({
             label="Database URL"
             rules={[
               { required: true, message: 'Please enter database URL' },
-              { type: 'url', message: 'Please enter a valid URL' },
+              {
+                validator: async (_, value?: string) => {
+                  const trimmedValue = value?.trim() ?? '';
+
+                  if (trimmedValue.length === 0) {
+                    return Promise.resolve();
+                  }
+
+                  if (isValidPostgresConnectionString(trimmedValue)) {
+                    return Promise.resolve();
+                  }
+
+                  return Promise.reject(new Error(DATABASE_URL_ERROR_MESSAGE));
+                },
+              },
             ]}
             hasFeedback
           >

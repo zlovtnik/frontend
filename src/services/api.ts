@@ -35,7 +35,14 @@ import { z } from 'zod';
 import type { ZodType } from 'zod';
 import { getEnv } from '../config/env';
 import { paginatedTenantResponseSchema, tenantSchema } from '../validation/schemas';
-import type { AuthResponse, LoginCredentials, User, Tenant as AuthTenant, RegisterData, PasswordResetConfirm } from '../types/auth';
+import type {
+  AuthResponse,
+  LoginCredentials,
+  User,
+  Tenant as AuthTenant,
+  RegisterData,
+  PasswordResetConfirm,
+} from '../types/auth';
 import type { ContactListResponse, Contact } from '../types/contact';
 import type { Gender as PersonGender } from '../types/person';
 import type {
@@ -152,7 +159,7 @@ const readTenantFromStorage = (): string | null => {
       typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
         ? window.localStorage
         : typeof globalThis !== 'undefined' && 'localStorage' in globalThis
-          ? (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage ?? null
+          ? ((globalThis as typeof globalThis & { localStorage?: Storage }).localStorage ?? null)
           : null;
 
     if (!storage) {
@@ -234,7 +241,8 @@ function pipe(value: unknown, ...fns: ((input: unknown) => unknown)[]): unknown 
  * @internal
  */
 const extractRequestId = (response: Response): string | undefined => {
-  const requestIdHeader = response.headers.get('x-request-id') ?? response.headers.get('x-requestid');
+  const requestIdHeader =
+    response.headers.get('x-request-id') ?? response.headers.get('x-requestid');
   return requestIdHeader ?? undefined;
 };
 
@@ -1030,7 +1038,9 @@ export const authService = {
    * });
    * ```
    */
-  confirmPasswordReset(data: PasswordResetConfirm): AsyncResult<ApiResponse<Record<string, unknown>>, AppError> {
+  confirmPasswordReset(
+    data: PasswordResetConfirm
+  ): AsyncResult<ApiResponse<Record<string, unknown>>, AppError> {
     const resetPayload = {
       token: data.token,
       new_password: data.newPassword,
@@ -1295,7 +1305,6 @@ const attachTenantIdToContact = (contact: unknown, tenantId: string): unknown =>
     resolvedTenantId = String(legacyTenantId);
   }
 
-  // eslint-disable-next-line no-console -- surface legacy payloads missing the required tenantId
   console.warn('Injecting missing tenantId for contact:', record);
 
   return {
@@ -1444,7 +1453,7 @@ export const addressBookService = {
               next_cursor: null,
               page_size: params?.limit ?? (collectionLength || 10),
               total_elements: collectionLength,
-            }
+            },
           };
 
           return liftResult(contactListFromApiResponse(fullResponse)).map(domainData =>

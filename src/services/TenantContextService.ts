@@ -241,7 +241,7 @@ export class TenantContextService {
       // import { jwtVerify } from 'jose';
       // const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       // const { payload } = await jwtVerify(token, secret);
-      
+
       // Mock implementation - in a real app, replace with actual JWT verification
       const parts = token.split('.');
       if (parts.length !== 3) {

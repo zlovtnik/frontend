@@ -38,9 +38,13 @@ export const createErrorResponse = (error: AppError, message?: string): ApiError
 export const isApiSuccess = <T>(response: ApiResponse<T>): response is ApiSuccessResponse<T> =>
   response.status === 'success';
 
-const isLegacyApiSuccessResponse = <T>(response: ApiResponseWithLegacy<T>): response is LegacyApiSuccessResponse<T> =>
-  typeof (response as { message?: unknown }).message === 'string' && (response as { message?: string }).message === 'ok' &&
-  'data' in response;
+const isLegacyApiSuccessResponse = <T>(
+  response: ApiResponseWithLegacy<T>
+): response is LegacyApiSuccessResponse<T> => {
+  if (!response || typeof response !== 'object') return false;
+  const msg = (response as { message?: unknown }).message;
+  return typeof msg === 'string' && msg === 'ok' && 'data' in (response as object);
+};
 
 export const isApiResponseSuccess = <T>(
   response: ApiResponseWithLegacy<T>

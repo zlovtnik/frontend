@@ -6,23 +6,14 @@ import { Gender } from '@/types/contact';
 import { normalizePersonDTO, type PersonDTO } from '@/types/person';
 import { addressBookService } from '@/services/api';
 import { getEnv } from '@/config/env';
-import {
-  Button,
-  Input,
-  InputNumber,
-  Card,
-  Table,
-  Modal,
-  Form,
-  Alert,
-  Space,
-  Typography,
-  Divider,
-  App,
-  Spin,
-  Select,
-} from 'antd';
+import { Button, Input, Card, Table, Alert, Space, Typography, Divider, App, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  ContactFormModal,
+  type ContactFormValues,
+  contactFormDefaultValues,
+} from '@/components/ContactFormModal';
+import { TableSkeleton } from '@/components/TableSkeleton';
 import {
   type ApiResponseSuccessLike,
   type ApiResponseWithLegacy,
@@ -30,21 +21,6 @@ import {
   isApiSuccess,
 } from '@/types/api';
 import { asContactId, asTenantId, asUserId } from '@/types/ids';
-
-interface AddressFormValues {
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
-  gender?: Gender;
-  age: number;
-  street1: string;
-  street2?: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
 
 let cachedDefaultCountry: string | null = null;
 
@@ -162,8 +138,10 @@ export const AddressBookPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [deleteContactId, setDeleteContactId] = useState<Contact['id'] | null>(null);
-  const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactFormInitialValues, setContactFormInitialValues] = useState<
+    Partial<ContactFormValues>
+  >({ ...contactFormDefaultValues, country: DEFAULT_COUNTRY });
 
   // Pagination state
   const [paginationState, setPaginationState] = useState({
@@ -235,7 +213,7 @@ export const AddressBookPage: React.FC = () => {
   );
 
   // Helper function to transform frontend Contact to backend PersonDTO
-  const contactToPersonDTO = (formValues: AddressFormValues) => {
+  const contactToPersonDTO = (formValues: ContactFormValues) => {
     const name = `${formValues.firstName} ${formValues.lastName}`.trim();
     const addressSegments = [
       formValues.street1,
@@ -284,19 +262,19 @@ export const AddressBookPage: React.FC = () => {
     return null;
   };
 
-  type NormalizedContacts = {
+  interface NormalizedContacts {
     contacts: PersonDTO[];
     page: number;
     pageSize: number;
     total: number;
-  };
+  }
 
   const normalizeContactListPayload = (
     response: unknown,
     isProperSuccess: boolean,
     hasRawSuccessFormat: boolean
   ): NormalizedContacts | null => {
-    type PartialContactData = {
+    interface PartialContactData {
       contacts?: unknown;
       page?: unknown;
       current?: unknown;
@@ -304,7 +282,7 @@ export const AddressBookPage: React.FC = () => {
       pageSize?: unknown;
       perPage?: unknown;
       total?: unknown;
-    };
+    }
 
     const responseObject = asRecord(response);
     if (!responseObject) {
@@ -335,10 +313,7 @@ export const AddressBookPage: React.FC = () => {
         contacts: rawData,
         page: readMetadata('page'),
         current: readMetadata('current'),
-        limit:
-          readMetadata('limit') ??
-          readMetadata('pageSize') ??
-          readMetadata('perPage'),
+        limit: readMetadata('limit') ?? readMetadata('pageSize') ?? readMetadata('perPage'),
         pageSize: readMetadata('pageSize'),
         perPage: readMetadata('perPage'),
         total:
@@ -360,10 +335,7 @@ export const AddressBookPage: React.FC = () => {
       : [];
 
     const page = toPositiveInteger(payload.page ?? payload.current, 1);
-    const pageSize = toPositiveInteger(
-      payload.limit ?? payload.pageSize ?? payload.perPage,
-      10
-    );
+    const pageSize = toPositiveInteger(payload.limit ?? payload.pageSize ?? payload.perPage, 10);
     const total = toNonNegativeInteger(payload.total, contacts.length);
 
     return {
@@ -374,7 +346,10 @@ export const AddressBookPage: React.FC = () => {
     };
   };
 
-  type SuccessShape = { isProperSuccess: boolean; hasRawSuccessFormat: boolean };
+  interface SuccessShape {
+    isProperSuccess: boolean;
+    hasRawSuccessFormat: boolean;
+  }
 
   type LegacySuccessPayload = {
     message?: unknown;
@@ -394,9 +369,7 @@ export const AddressBookPage: React.FC = () => {
 
     const rawResponse = asRecord(apiResponse);
     const hasRawSuccessFormat = Boolean(
-      rawResponse &&
-        rawResponse.data !== undefined &&
-        rawResponse.message === 'ok'
+      rawResponse?.data !== undefined && rawResponse.message === 'ok'
     );
 
     return {
@@ -424,6 +397,16 @@ export const AddressBookPage: React.FC = () => {
       successShape.hasRawSuccessFormat
     );
 
+  const getNormalizedContactData = (
+    apiResponse: ApiResponseWithLegacy<unknown>
+  ): NormalizedContacts | null => {
+    if (!isApiResponseSuccess(apiResponse)) {
+      return null;
+    }
+    const successShape = deriveSuccessShape(apiResponse);
+    return extractNormalizedContacts(apiResponse, successShape);
+  };
+
   const loadContacts = useCallback(async () => {
     if (!tenant) {
       setContacts([]);
@@ -438,7 +421,7 @@ export const AddressBookPage: React.FC = () => {
     const result = await addressBookService.getAll({
       page: currentPage,
       limit: currentPageSize,
-      search: searchTerm || undefined
+      search: searchTerm || undefined,
     });
 
     if (result.isErr()) {
@@ -451,21 +434,7 @@ export const AddressBookPage: React.FC = () => {
 
     const apiResponse = result.value;
 
-    // Handle both expected API response format and actual backend format
-    // The backend returns { message: "ok", data: [...], metadata: {...} }
-    // instead of { status: "success", data: {...}, message: "ok" }
-    const successShape = deriveSuccessShape(apiResponse);
-    const isSuccess = successShape.isProperSuccess || successShape.hasRawSuccessFormat;
-
-    if (!isSuccess) {
-      const errorMessage = getResponseMessage(apiResponse, 'Failed to load contacts');
-      setError(errorMessage);
-      message.error(errorMessage);
-      setLoading(false);
-      return;
-    }
-
-    const normalizedData = extractNormalizedContacts(apiResponse, successShape);
+    const normalizedData = getNormalizedContactData(apiResponse);
 
     if (!normalizedData) {
       const errorMessage = 'Failed to load contacts';
@@ -509,7 +478,7 @@ export const AddressBookPage: React.FC = () => {
   const filteredContacts = contacts;
 
   // Handle form submission
-  const handleSubmit = async (values: AddressFormValues) => {
+  const handleContactSubmit = async (values: ContactFormValues) => {
     setIsSubmitting(true);
     setFormError(null);
     const dto = contactToPersonDTO(values);
@@ -544,17 +513,18 @@ export const AddressBookPage: React.FC = () => {
       return;
     }
 
-    const successMsg = getResponseMessage(
-      apiResponse,
-      isUpdating ? 'Contact updated successfully!' : 'Contact created successfully!'
-    );
+    const fallbackMsg = isUpdating
+      ? 'Contact updated successfully!'
+      : 'Contact created successfully!';
+    const rawMsg = getResponseMessage(apiResponse, fallbackMsg);
+    const successMsg = rawMsg && rawMsg.toLowerCase() !== 'ok' ? rawMsg : fallbackMsg;
     message.success(successMsg);
 
     await loadContacts();
 
     setEditingContact(null);
     setIsFormOpen(false);
-    form.resetFields();
+    setContactFormInitialValues({ ...contactFormDefaultValues, country: DEFAULT_COUNTRY });
     setIsSubmitting(false);
     setOperationError(null); // Clear operation error on success
   };
@@ -563,19 +533,20 @@ export const AddressBookPage: React.FC = () => {
   const handleEdit = (contact: Contact) => {
     setEditingContact(contact);
     setFormError(null);
-    form.setFieldsValue({
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      email: contact.email,
-      phone: contact.phone,
-      gender: contact.gender,
-      age: contact.age || 25, // Default if not available
-      street1: contact.address?.street1,
-      street2: contact.address?.street2,
-      city: contact.address?.city,
-      state: contact.address?.state,
-      zipCode: contact.address?.zipCode,
-      country: contact.address?.country,
+    setContactFormInitialValues({
+      ...contactFormDefaultValues,
+      firstName: contact.firstName ?? '',
+      lastName: contact.lastName ?? '',
+      email: contact.email ?? '',
+      phone: contact.phone ?? '',
+      gender: contact.gender ?? Gender.other,
+      age: contact.age ?? 25,
+      street1: contact.address?.street1 ?? '',
+      street2: contact.address?.street2 ?? '',
+      city: contact.address?.city ?? '',
+      state: contact.address?.state ?? '',
+      zipCode: contact.address?.zipCode ?? '',
+      country: contact.address?.country ?? DEFAULT_COUNTRY,
     });
     setIsFormOpen(true);
   };
@@ -610,7 +581,11 @@ export const AddressBookPage: React.FC = () => {
 
       setDeleteContactId(null);
       await loadContacts();
-      message.success(apiResponse.message ?? 'Contact deleted successfully!');
+      message.success(
+        typeof apiResponse.message === 'string' && apiResponse.message.toLowerCase() !== 'ok'
+          ? apiResponse.message
+          : 'Contact deleted successfully!'
+      );
       setOperationError(null); // Clear operation error on success
     }
   };
@@ -624,7 +599,7 @@ export const AddressBookPage: React.FC = () => {
   const handleNewContact = () => {
     setEditingContact(null);
     setFormError(null);
-    form.resetFields();
+    setContactFormInitialValues({ ...contactFormDefaultValues, country: DEFAULT_COUNTRY });
     setIsFormOpen(true);
   };
 
@@ -683,14 +658,7 @@ export const AddressBookPage: React.FC = () => {
           >
             Edit
           </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              handleDelete(contact.id);
-            }}
-          >
+          <Button type="link" danger icon={<DeleteOutlined />} loading={loading}>
             Delete
           </Button>
         </Space>
@@ -734,18 +702,7 @@ export const AddressBookPage: React.FC = () => {
 
     const apiResponse = result.value as ApiResponseWithLegacy<Contact>;
 
-    const isSuccess = isApiResponseSuccess(apiResponse);
-
-    if (!isSuccess) {
-      const errorMessage = 'Failed to load contacts';
-      setError(errorMessage);
-      message.error(errorMessage);
-      setLoading(false);
-      return;
-    }
-
-    const successShape = deriveSuccessShape(apiResponse);
-    const normalizedData = extractNormalizedContacts(apiResponse, successShape);
+    const normalizedData = getNormalizedContactData(apiResponse);
 
     if (!normalizedData) {
       const errorMessage = 'Failed to load contacts';
@@ -788,7 +745,13 @@ export const AddressBookPage: React.FC = () => {
           </Typography.Title>
           <Typography.Text type="secondary">Manage your contacts and addresses</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleNewContact}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleNewContact}
+          loading={loading}
+          disabled={loading}
+        >
           Add Contact
         </Button>
       </div>
@@ -804,10 +767,10 @@ export const AddressBookPage: React.FC = () => {
           const newSearchTerm = e.target.value;
           setSearchTerm(newSearchTerm);
           // Trigger search with backend filtering, reset to first page
-          loadContactsWithParams({ 
-            page: 1, 
-            limit: paginationState.pageSize, 
-            search: newSearchTerm 
+          loadContactsWithParams({
+            page: 1,
+            limit: paginationState.pageSize,
+            search: newSearchTerm,
           });
         }}
         style={{ maxWidth: 400 }}
@@ -825,7 +788,7 @@ export const AddressBookPage: React.FC = () => {
             setError(null);
           }}
           action={
-            <Button size="small" onClick={loadContacts}>
+            <Button size="small" onClick={loadContacts} loading={loading}>
               Retry
             </Button>
           }
@@ -849,10 +812,11 @@ export const AddressBookPage: React.FC = () => {
       {/* Contacts Table */}
       <Card title={`Contacts (${filteredContacts.length})`}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '32px' }}>
-            <Spin size="large" />
-            <Typography.Text style={{ marginLeft: 8 }}>Loading contacts...</Typography.Text>
-          </div>
+          <TableSkeleton
+            rows={6}
+            ariaLabel="Loading contacts"
+            testId="address-book-table-skeleton"
+          />
         ) : (
           <Table
             columns={columns}
@@ -889,7 +853,12 @@ export const AddressBookPage: React.FC = () => {
                     <Typography.Text>No contacts yet. Add your first contact!</Typography.Text>
                     <br />
                     <br />
-                    <Button type="primary" onClick={handleNewContact}>
+                    <Button
+                      type="primary"
+                      onClick={handleNewContact}
+                      loading={loading}
+                      disabled={loading}
+                    >
                       Add Contact
                     </Button>
                   </div>
@@ -902,160 +871,17 @@ export const AddressBookPage: React.FC = () => {
       </Card>
 
       {/* Contact Form Modal */}
-      <Modal
-        title={editingContact ? 'Edit Contact' : 'Add New Contact'}
+      <ContactFormModal
         open={isFormOpen}
+        initialValues={contactFormInitialValues}
+        submitting={isSubmitting}
+        errorMessage={formError}
+        onSubmit={handleContactSubmit}
         onCancel={() => {
           setIsFormOpen(false);
+          setContactFormInitialValues({ ...contactFormDefaultValues, country: DEFAULT_COUNTRY });
         }}
-        footer={null}
-      >
-        <Form
-          form={form}
-          onFinish={handleSubmit}
-          layout="vertical"
-          initialValues={{
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
-            gender: undefined,
-            age: 25,
-            street1: '',
-            street2: '',
-            city: '',
-            state: '',
-            zipCode: '',
-            country: DEFAULT_COUNTRY,
-          }}
-        >
-          {formError && (
-            <Alert
-              message="Operation Failed"
-              description={formError}
-              type="error"
-              showIcon
-              closable
-              onClose={() => {
-                setFormError(null);
-              }}
-              style={{ marginBottom: 16 }}
-            />
-          )}
-          <Form.Item
-            name="firstName"
-            label="First Name"
-            rules={[{ required: true, message: 'Please enter first name' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="lastName"
-            label="Last Name"
-            rules={[{ required: true, message: 'Please enter last name' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[{ type: 'email', message: 'Please enter a valid email' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="phone"
-            label="Phone"
-            rules={[
-              {
-                pattern: /^[\+]?[\d\s\-\(\)\.]+$/,
-                message: 'Please enter a valid phone number',
-              },
-            ]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            name="gender"
-            label="Gender"
-            rules={[{ required: true, message: 'Please select gender' }]}
-          >
-            <Select style={{ width: '100%' }} placeholder="Select gender" allowClear>
-              <Select.Option value="male">Male</Select.Option>
-              <Select.Option value="female">Female</Select.Option>
-              <Select.Option value="other">Other</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="age"
-            label="Age"
-            rules={[
-              { required: true, message: 'Please enter age' },
-              { type: 'number', min: 1, max: 120, message: 'Age must be between 1 and 120' },
-            ]}
-          >
-            <InputNumber min={1} max={120} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Divider>Address</Divider>
-
-          <Form.Item
-            name="street1"
-            label="Street Address"
-            rules={[{ required: true, message: 'Please enter street address' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item name="street2" label="Street Address 2">
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="city"
-            label="City"
-            rules={[{ required: true, message: 'Please enter city' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="state"
-            label="State"
-            rules={[{ required: true, message: 'Please enter state' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="zipCode"
-            label="ZIP Code"
-            rules={[{ required: true, message: 'Please enter ZIP code' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="country"
-            label="Country"
-            rules={[{ required: true, message: 'Please enter country' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                {editingContact ? 'Update Contact' : 'Add Contact'}
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsFormOpen(false);
-                }}
-              >
-                Cancel
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
 
       {/* Confirmation Modal */}
       <ConfirmationModal

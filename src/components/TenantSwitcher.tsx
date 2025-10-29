@@ -84,10 +84,11 @@ export const TenantSwitcher: React.FC<TenantSwitcherProps> = ({
               lastAccessed: date && !isNaN(date.getTime()) ? date : undefined,
             };
           })
-          .filter((item: any) =>
-            item.tenant &&
-            item.lastAccessed instanceof Date &&
-            !isNaN(item.lastAccessed.getTime())
+          .filter(
+            (item: any) =>
+              item.tenant &&
+              item.lastAccessed instanceof Date &&
+              !isNaN(item.lastAccessed.getTime())
           );
         setRecentTenants(parsedRecent);
       } catch (error) {

@@ -29,6 +29,7 @@ import {
   createNetworkError,
   createValidationError,
 } from '../types/errors';
+import type { ApiErrorType } from '../types/errors';
 import { asTenantId } from '../types/ids';
 import { Gender } from '../types/person';
 import { getEnv } from '../config/env';
@@ -576,7 +577,7 @@ describe('Network Error Handling', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.type).toBe(API_ERROR_TYPES.Network);
+        expect(result.error.type).toBe(API_ERROR_TYPES.Timeout);
         expect(result.error.code).toBe('TIMEOUT');
         // Remove the message assertion - rely on type and code assertions instead
       }
@@ -1187,14 +1188,13 @@ describe('Error Handling Integration', () => {
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         // The error type may vary depending on the service implementation
-        expect(
-          [
-            API_ERROR_TYPES.Validation,
-            API_ERROR_TYPES.Network,
-            API_ERROR_TYPES.Server,
-            API_ERROR_TYPES.Timeout,
-          ].includes(result.error.type)
-        ).toBe(true);
+        const allowedTypes: ApiErrorType[] = [
+          API_ERROR_TYPES.Validation,
+          API_ERROR_TYPES.Network,
+          API_ERROR_TYPES.Server,
+          API_ERROR_TYPES.Timeout,
+        ];
+        expect(allowedTypes.includes(result.error.type)).toBe(true);
         expect((result.error.statusCode ?? result.error.message) !== undefined).toBe(true);
       }
     });
