@@ -3,7 +3,7 @@
  * Provides comprehensive validation and error handling for tenant operations
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Modal,
   Form,
@@ -87,6 +87,8 @@ export const TenantForm: React.FC<TenantFormProps> = ({
     'idle' | 'testing' | 'success' | 'error'
   >('idle');
   const [connectionMessage, setConnectionMessage] = useState<string>('');
+  const latestConnectionTestRef = useRef(0);
+  const connectionTestAbortControllerRef = useRef<AbortController | null>(null);
 
   const notifications = useTenantNotifications();
 
@@ -102,6 +104,15 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       setConnectionMessage('');
     }
   }, [open, initialValues, form]);
+
+  useEffect(() => {
+    return () => {
+      if (connectionTestAbortControllerRef.current) {
+        connectionTestAbortControllerRef.current.abort();
+        connectionTestAbortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   // Validate tenant name
   const validateTenantName = useCallback((name: string): string | null => {
@@ -138,6 +149,13 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   // Test database connection
   const testDatabaseConnection = useCallback(async (url: string) => {
     const trimmed = url?.trim() ?? '';
+    const requestId = latestConnectionTestRef.current + 1;
+    latestConnectionTestRef.current = requestId;
+
+    if (connectionTestAbortControllerRef.current) {
+      connectionTestAbortControllerRef.current.abort();
+      connectionTestAbortControllerRef.current = null;
+    }
 
     if (trimmed.length === 0) {
       setConnectionStatus('idle');
@@ -154,10 +172,14 @@ export const TenantForm: React.FC<TenantFormProps> = ({
     setConnectionStatus('testing');
     setConnectionMessage('');
 
+    let controller: AbortController | null = null;
+    let timeoutId: number | null = null;
+
     try {
       const baseUrl = getEnv().apiUrl ?? '';
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+      controller = new AbortController();
+      connectionTestAbortControllerRef.current = controller;
+      timeoutId = window.setTimeout(() => controller?.abort(), 10000);
 
       const response = await fetch(`${baseUrl}/tenant/test-connection`, {
         method: 'POST',
@@ -169,7 +191,13 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         credentials: 'include',
       });
 
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (latestConnectionTestRef.current !== requestId) {
+        return;
+      }
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => undefined);
@@ -188,8 +216,10 @@ export const TenantForm: React.FC<TenantFormProps> = ({
           }
         }
 
-        setConnectionStatus('error');
-        setConnectionMessage(message);
+        if (latestConnectionTestRef.current === requestId) {
+          setConnectionStatus('error');
+          setConnectionMessage(message);
+        }
         return;
       }
 
@@ -198,19 +228,37 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         | undefined;
 
       if (payload && payload.status === 'error') {
-        setConnectionStatus('error');
-        setConnectionMessage(payload.message);
+        if (latestConnectionTestRef.current === requestId) {
+          setConnectionStatus('error');
+          setConnectionMessage(payload.message);
+        }
         return;
       }
 
       const successMessage = payload?.message ?? 'Connection successful';
-      setConnectionStatus('success');
-      setConnectionMessage(successMessage);
+      if (latestConnectionTestRef.current === requestId) {
+        setConnectionStatus('success');
+        setConnectionMessage(successMessage);
+      }
     } catch (error) {
+      if (latestConnectionTestRef.current !== requestId) {
+        return;
+      }
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       const fallbackMessage =
         error instanceof Error ? error.message : 'Unexpected error while testing connection';
       setConnectionStatus('error');
       setConnectionMessage(fallbackMessage);
+    } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      if (controller && connectionTestAbortControllerRef.current === controller) {
+        connectionTestAbortControllerRef.current = null;
+      }
     }
   }, []);
 

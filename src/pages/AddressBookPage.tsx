@@ -810,20 +810,37 @@ export const AddressBookPage: React.FC = () => {
               onChange: (page, pageSize) => {
                 setPaginationState({ current: page, pageSize, total: paginationState.total });
                 // Reload with new params
-                loadContactsWithParams({ page, limit: pageSize });
+                loadContactsWithParams({
+                  page,
+                  limit: pageSize,
+                  search: searchTerm || undefined,
+                  ...(sorting && {
+                    sortField: sorting.field,
+                    sortOrder: sorting.order,
+                  }),
+                });
               },
             }}
             onChange={(pagination, filters, sorter) => {
               const sorterResult = Array.isArray(sorter) ? sorter[0] : sorter;
               if (sorterResult?.field && sorterResult?.order) {
                 const order = sorterResult.order === 'ascend' ? 'asc' : 'desc';
-                setSorting({ field: sorterResult.field as string, order });
-                // Reload with sorting
+                const field = sorterResult.field as string;
+                setSorting({ field, order });
+                // Reload with sorting, preserving active filters
                 loadContactsWithParams({
                   page: pagination.current,
                   limit: pagination.pageSize,
-                  sortField: sorterResult.field as string,
+                  search: searchTerm || undefined,
+                  sortField: field,
                   sortOrder: order,
+                });
+              } else {
+                setSorting(null);
+                loadContactsWithParams({
+                  page: pagination.current,
+                  limit: pagination.pageSize,
+                  search: searchTerm || undefined,
                 });
               }
             }}
