@@ -378,12 +378,7 @@ export const TenantDashboard: React.FC<TenantDashboardProps> = ({
                     <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
                   ),
                 children: (
-                  <div
-                    key={
-                      activity.tenant.id ??
-                      `${activity.tenant.name}-${activity.timestamp ?? 'unknown'}`
-                    }
-                  >
+                  <div>
                     <Text strong>{activity.tenant.name}</Text>
                     <Text type="secondary" style={{ marginLeft: '8px' }}>
                       {activity.action}
@@ -429,7 +424,7 @@ export const TenantDashboard: React.FC<TenantDashboardProps> = ({
       {tenantStats.healthScore < 80 && (
         <Alert
           message="System Health Alert"
-          description={`Your tenant infrastructure health is at ${tenantStats.healthScore.toString()}%. Consider reviewing inactive tenants or missing database configurations.`}
+          description={`Your tenant infrastructure health is at ${tenantStats.healthScore}%. Consider reviewing inactive tenants or missing database configurations.`}
           type="warning"
           showIcon
           style={{ marginTop: '16px' }}

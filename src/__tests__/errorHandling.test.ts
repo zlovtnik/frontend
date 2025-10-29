@@ -22,13 +22,7 @@ import {
   resetApiClientCircuitBreaker,
   DEFAULT_CONFIG,
 } from '../services/api';
-import {
-  API_ERROR_TYPES,
-  createAuthError,
-  createBusinessLogicError,
-  createNetworkError,
-  createValidationError,
-} from '../types/errors';
+import { API_ERROR_TYPES } from '../types/errors';
 import type { ApiErrorType } from '../types/errors';
 import { asTenantId } from '../types/ids';
 import { Gender } from '../types/person';

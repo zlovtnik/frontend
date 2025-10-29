@@ -30,6 +30,12 @@ import {
 import type { Tenant } from '@/types/tenant';
 import { useTenantNotifications, type TenantOperationResult } from '@/hooks/useTenantNotifications';
 import { isValidPostgresConnectionString } from '@/validation/schemas';
+import { API_ERROR_TYPES } from '@/types/errors';
+import { getEnv } from '@/config/env';
+
+type ConnectionTestResult =
+  | { status: 'success'; message?: string }
+  | { status: 'error'; message: string };
 
 const { Title, Text } = Typography;
 
@@ -80,6 +86,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   const [connectionStatus, setConnectionStatus] = useState<
     'idle' | 'testing' | 'success' | 'error'
   >('idle');
+  const [connectionMessage, setConnectionMessage] = useState<string>('');
 
   const notifications = useTenantNotifications();
 
@@ -92,6 +99,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       }
       setValidationResult({ isValid: true, errors: {}, warnings: [] });
       setConnectionStatus('idle');
+      setConnectionMessage('');
     }
   }, [open, initialValues, form]);
 
@@ -133,23 +141,76 @@ export const TenantForm: React.FC<TenantFormProps> = ({
 
     if (trimmed.length === 0) {
       setConnectionStatus('idle');
+      setConnectionMessage('');
       return;
     }
 
     if (!isValidPostgresConnectionString(trimmed)) {
       setConnectionStatus('error');
+      setConnectionMessage(DATABASE_URL_ERROR_MESSAGE);
       return;
     }
 
     setConnectionStatus('testing');
+    setConnectionMessage('');
 
     try {
-      // Simulate connection test (replace with actual implementation)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const baseUrl = getEnv().apiUrl ?? '';
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 10000);
 
+      const response = await fetch(`${baseUrl}/tenant/test-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ db_url: trimmed }),
+        signal: controller.signal,
+        credentials: 'include',
+      });
+
+      window.clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => undefined);
+        let message = 'Unable to verify database connection';
+
+        if (errorBody && typeof errorBody === 'object') {
+          const { message: errorMessage, error: errorDetails } = errorBody as {
+            message?: string;
+            error?: { reason?: string; message?: string };
+          };
+
+          if (errorMessage) {
+            message = errorMessage;
+          } else if (errorDetails?.reason || errorDetails?.message) {
+            message = errorDetails.reason ?? errorDetails.message ?? message;
+          }
+        }
+
+        setConnectionStatus('error');
+        setConnectionMessage(message);
+        return;
+      }
+
+      const payload = (await response.json().catch(() => undefined)) as
+        | ConnectionTestResult
+        | undefined;
+
+      if (payload && payload.status === 'error') {
+        setConnectionStatus('error');
+        setConnectionMessage(payload.message);
+        return;
+      }
+
+      const successMessage = payload?.message ?? 'Connection successful';
       setConnectionStatus('success');
+      setConnectionMessage(successMessage);
     } catch (error) {
+      const fallbackMessage =
+        error instanceof Error ? error.message : 'Unexpected error while testing connection';
       setConnectionStatus('error');
+      setConnectionMessage(fallbackMessage);
     }
   }, []);
 
@@ -265,9 +326,9 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       case 'testing':
         return 'Testing connection...';
       case 'success':
-        return 'Connection successful';
+        return connectionMessage || 'Connection successful';
       case 'error':
-        return 'Connection failed';
+        return connectionMessage || 'Connection failed';
       default:
         return 'Enter database URL to test connection';
     }

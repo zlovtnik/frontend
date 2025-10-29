@@ -3,6 +3,14 @@ import { asContactId, asTenantId, asUserId } from '../types/ids';
 import { API_ERROR_TYPES } from '../types/errors';
 import type { ApiErrorType } from '../types/errors';
 
+const apiErrorTypeValuesRaw = Object.values(API_ERROR_TYPES);
+
+if (apiErrorTypeValuesRaw.length === 0) {
+  throw new Error('API_ERROR_TYPES must contain at least one value.');
+}
+
+const apiErrorTypeValues = apiErrorTypeValuesRaw as [ApiErrorType, ...ApiErrorType[]];
+
 const nonEmptyString = z.string().min(1, 'Value is required');
 
 const dateSchema = z
@@ -76,8 +84,6 @@ const tenantSubscriptionSchema = z.object({
     }),
   limits: tenantLimitsSchema,
 });
-
-const apiErrorTypeValues = Object.values(API_ERROR_TYPES) as [ApiErrorType, ...ApiErrorType[]];
 
 export const authTenantSchema = z.object({
   id: z

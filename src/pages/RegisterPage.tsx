@@ -238,10 +238,9 @@ export const RegisterPage: React.FC = () => {
               >
                 I accept the{' '}
                 <a
-                  href="#"
-                  onClick={e => {
-                    e.preventDefault();
-                  }}
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Terms and Conditions
                 </a>

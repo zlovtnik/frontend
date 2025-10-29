@@ -13,6 +13,11 @@ interface ConfirmResetFormValues {
   confirmPassword: string;
 }
 
+const LABEL_STYLE: React.CSSProperties = {
+  color: 'var(--primary-700)',
+  fontWeight: 600,
+};
+
 export const PasswordResetPage: React.FC = () => {
   const { requestPasswordReset, confirmPasswordReset, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -83,6 +88,7 @@ export const PasswordResetPage: React.FC = () => {
         // After successful reset, navigate to login page after a delay
         navigateTimerRef.current = window.setTimeout(() => {
           navigate('/login');
+          navigateTimerRef.current = null;
         }, 3000);
       } else {
         setSubmitError(result.message);
@@ -96,6 +102,10 @@ export const PasswordResetPage: React.FC = () => {
   };
 
   const onBackToRequest = () => {
+    if (navigateTimerRef.current != null) {
+      clearTimeout(navigateTimerRef.current);
+      navigateTimerRef.current = null;
+    }
     setCurrentStep(0);
     form.resetFields();
     setSubmitError(null);
@@ -152,7 +162,7 @@ export const PasswordResetPage: React.FC = () => {
           percent={getProgressPercent()}
           size="small"
           status={submitError ? 'exception' : submitSuccess ? 'success' : 'active'}
-          aria-live="polite"
+          aria-label="Progress indicator: visual feedback only, not measured progress"
           style={{ marginBottom: '16px' }}
         />
 
@@ -193,7 +203,7 @@ export const PasswordResetPage: React.FC = () => {
               data-testid="request-reset-form"
             >
               <Form.Item
-                label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Email</span>}
+                label={<span style={LABEL_STYLE}>Email</span>}
                 name="email"
                 rules={[
                   { required: true, message: 'Email is required' },
@@ -285,9 +295,7 @@ export const PasswordResetPage: React.FC = () => {
               data-testid="confirm-reset-form"
             >
               <Form.Item
-                label={
-                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Reset Token</span>
-                }
+                label={<span style={LABEL_STYLE}>Reset Token</span>}
                 name="token"
                 rules={[{ required: true, message: 'Reset token is required' }]}
               >
@@ -301,9 +309,7 @@ export const PasswordResetPage: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                label={
-                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>New Password</span>
-                }
+                label={<span style={LABEL_STYLE}>New Password</span>}
                 name="newPassword"
                 rules={[
                   { required: true, message: 'New password is required' },
@@ -320,11 +326,7 @@ export const PasswordResetPage: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                label={
-                  <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                    Confirm New Password
-                  </span>
-                }
+                label={<span style={LABEL_STYLE}>Confirm New Password</span>}
                 name="confirmPassword"
                 dependencies={['newPassword']}
                 rules={[

@@ -103,8 +103,11 @@ export const isServerError = (error: AppError): error is ServerError =>
 export const isTenantError = (error: AppError): error is TenantError =>
   error.type === API_ERROR_TYPES.Tenant;
 
-/** @internal Options consumed by the error factory helpers. */
-interface ErrorFactoryOptions {
+/**
+ * Options consumed by the error factory helpers.
+ * Part of the public API for error creation.
+ */
+export interface ErrorFactoryOptions {
   code?: string;
   cause?: unknown;
   statusCode?: number;
@@ -230,7 +233,14 @@ export type BusinessLogicError = ServerError;
 export type AuthorizationError = ForbiddenError;
 
 /**
- * Storage-related errors for FP patterns
+ * FP-style domain errors used with Result<T, E> helpers.
+ *
+ * These complement the AppError hierarchy above:
+ * - AppError/ApiErrorType values model HTTP and cross-service failures.
+ * - The unions below model client-side/storage/domain concerns that do not map to API_ERROR_TYPES.
+ *
+ * Use these when working with functional utilities (neverthrow) in storage, parsing,
+ * and credential validation flows where emitting a full AppError would be excessive.
  */
 export type StorageError =
   | { type: 'NOT_FOUND'; key: string }

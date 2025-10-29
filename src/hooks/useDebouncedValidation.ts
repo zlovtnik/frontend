@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import type { FieldValues, UseFormTrigger } from 'react-hook-form';
 
-interface UseDebouncedValidationParams<T extends FieldValues> {
+export interface UseDebouncedValidationParams<T extends FieldValues> {
   trigger: UseFormTrigger<T>;
   /**
    * Values to watch for triggering validation. Pass the output of `watch` or `useWatch`.
@@ -25,25 +25,20 @@ export function useDebouncedValidation<T extends FieldValues>(
   params: UseDebouncedValidationParams<T>
 ): void {
   const { trigger, values, delay = 300, shouldValidate = true } = params;
-  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!shouldValidate) {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
+    let timerId: number | undefined;
+
+    if (shouldValidate) {
+      timerId = window.setTimeout(() => {
+        void trigger();
+      }, delay);
     }
 
-    timerRef.current = window.setTimeout(() => {
-      void trigger();
-    }, delay);
-
     return () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
+      if (timerId !== undefined) {
+        clearTimeout(timerId);
+        timerId = undefined;
       }
     };
   }, [trigger, delay, shouldValidate, values]);

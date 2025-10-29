@@ -113,6 +113,18 @@ export class ErrorBoundary extends Component<Props, State> {
     return null;
   };
 
+  private renderRetryButton = (error: AppError) => {
+    if (error.retryable === false) {
+      return undefined;
+    }
+
+    return (
+      <Button size="small" onClick={this.handleRetry}>
+        Retry
+      </Button>
+    );
+  };
+
   /**
    * Handle Result-based errors with custom recovery strategies
    */
@@ -152,18 +164,7 @@ export class ErrorBoundary extends Component<Props, State> {
             type="error"
             showIcon
             data-testid="network-error"
-            action={
-              error.retryable !== false ? (
-                <Button
-                  size="small"
-                  onClick={() => {
-                    this.handleRetry();
-                  }}
-                >
-                  Retry
-                </Button>
-              ) : undefined
-            }
+            action={this.renderRetryButton(error)}
           />
         );
 
@@ -175,13 +176,7 @@ export class ErrorBoundary extends Component<Props, State> {
             type="warning"
             showIcon
             data-testid="timeout-error"
-            action={
-              error.retryable !== false ? (
-                <Button size="small" onClick={this.handleRetry}>
-                  Retry
-                </Button>
-              ) : undefined
-            }
+            action={this.renderRetryButton(error)}
           />
         );
 
@@ -228,13 +223,7 @@ export class ErrorBoundary extends Component<Props, State> {
             type="warning"
             showIcon
             data-testid="server-error"
-            action={
-              error.retryable !== false ? (
-                <Button size="small" onClick={this.handleRetry}>
-                  Retry
-                </Button>
-              ) : undefined
-            }
+            action={this.renderRetryButton(error)}
           />
         );
 

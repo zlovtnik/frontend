@@ -21,7 +21,7 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
       style={{ width: '100%' }}
     >
       <Skeleton active title paragraph={false} style={{ marginBottom: 16 }} />
-      <Skeleton active paragraph={{ rows }} />
+      <Skeleton active title={false} paragraph={{ rows }} />
     </div>
   );
 };

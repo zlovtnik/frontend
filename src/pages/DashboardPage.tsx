@@ -74,8 +74,6 @@ export const DashboardPage: React.FC = () => {
     return COLOR_MAP[color] ?? COLOR_MAP.default!;
   };
 
-  const isAuthLoading = isLoading;
-
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {/* Welcome Section */}
@@ -88,7 +86,7 @@ export const DashboardPage: React.FC = () => {
       />
 
       {/* Quick Stats */}
-      {isAuthLoading ? (
+      {isLoading ? (
         <CardSkeletonGrid />
       ) : (
         <Row gutter={[16, 16]}>
@@ -97,7 +95,7 @@ export const DashboardPage: React.FC = () => {
               hoverable
               actions={[
                 <Link to="/address-book" key="view">
-                  <Button type="primary" block loading={isAuthLoading} disabled={isAuthLoading}>
+                  <Button type="primary" block>
                     View Address Book
                   </Button>
                 </Link>,
@@ -158,7 +156,7 @@ export const DashboardPage: React.FC = () => {
         }
         hoverable
       >
-        {isAuthLoading ? (
+        {isLoading ? (
           <SectionSkeleton
             rows={4}
             ariaLabel="Loading recent activity"
@@ -179,7 +177,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Technology Stack */}
       <Card title="Technology Stack" hoverable>
-        {isAuthLoading ? (
+        {isLoading ? (
           <SectionSkeleton
             rows={4}
             ariaLabel="Loading technology stack"

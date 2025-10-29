@@ -6,6 +6,7 @@ interface CardSkeletonGridProps {
   gutter?: number;
   ariaLabel?: string;
   testId?: string;
+  skeletonRows?: number;
 }
 
 export const CardSkeletonGrid: React.FC<CardSkeletonGridProps> = ({
@@ -13,6 +14,7 @@ export const CardSkeletonGrid: React.FC<CardSkeletonGridProps> = ({
   gutter = 16,
   ariaLabel = 'Loading cards',
   testId = 'card-skeleton-grid',
+  skeletonRows = 2,
 }) => {
   return (
     <Row
@@ -23,9 +25,9 @@ export const CardSkeletonGrid: React.FC<CardSkeletonGridProps> = ({
       data-testid={testId}
     >
       {Array.from({ length: count }).map((_, index) => (
-        <Col key={index} xs={24} md={8}>
+        <Col key={`skeleton-${index}`} xs={24} md={8}>
           <Card bordered={false} style={{ height: '100%' }}>
-            <Skeleton active title paragraph={{ rows: 2 }} />
+            <Skeleton active title paragraph={{ rows: skeletonRows }} />
           </Card>
         </Col>
       ))}

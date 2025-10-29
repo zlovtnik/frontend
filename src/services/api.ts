@@ -73,6 +73,7 @@ import type { AuthResponseSchema, LoginRequestSchema } from '../validation';
 import { contactListFromApiResponse, mapContact } from '../transformers';
 import { decodeJwtPayload } from '../utils/parsing';
 import { asUserId, asTenantId } from '../types/ids';
+import { logger } from '../utils/logger';
 
 /**
  * Retry configuration for failed HTTP requests
@@ -1305,7 +1306,9 @@ const attachTenantIdToContact = (contact: unknown, tenantId: string): unknown =>
     resolvedTenantId = String(legacyTenantId);
   }
 
-  console.warn('Injecting missing tenantId for contact:', record);
+  if (!('tenant_id' in record) || record.tenant_id == null) {
+    console.warn('Injecting missing tenantId for contact:', record);
+  }
 
   return {
     ...rest,
@@ -1325,6 +1328,9 @@ const attachTenantIdToContact = (contact: unknown, tenantId: string): unknown =>
  * @param tenantId - Tenant identifier to inject when present.
  * @returns Original data with tenantId applied where applicable.
  */
+// TODO[AB-2134] (@Platform-Integration, target release: 2026.02): Remove once all contact
+// endpoints return the unified `/address-book` payload; current shim ensures tenantId is
+// present across legacy shapes during migration.
 const ensureTenantIdOnCollection = (data: unknown, tenantId: string | null): unknown => {
   if (!tenantId) {
     return data;
@@ -1590,8 +1596,17 @@ export function createHttpClient(config?: Partial<HttpClientConfig>): IHttpClien
  */
 export function resetApiClientCircuitBreaker(): void {
   if (apiClient instanceof HttpClient) {
-    apiClient.resetCircuitBreaker();
+    try {
+      apiClient.resetCircuitBreaker();
+    } catch (error) {
+      logger.warn('Failed to reset API client circuit breaker', error);
+    }
+    return;
   }
+
+  logger.warn('resetApiClientCircuitBreaker called but apiClient is not an HttpClient instance', {
+    apiClientType: typeof apiClient,
+  });
 }
 
 /**

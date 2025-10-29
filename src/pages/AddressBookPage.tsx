@@ -328,10 +328,30 @@ export const AddressBookPage: React.FC = () => {
       return null;
     }
 
+    const isPersonDTO = (candidate: unknown): candidate is PersonDTO => {
+      if (!candidate || typeof candidate !== 'object') {
+        return false;
+      }
+
+      const record = candidate as Record<string, unknown>;
+
+      const id = record.id;
+      const fullName = record.fullName ?? record.name ?? record.firstName;
+      const email = record.email;
+      const phone = record.phone;
+
+      const hasValidId =
+        (typeof id === 'string' && id.trim().length > 0) ||
+        (typeof id === 'number' && Number.isFinite(id));
+      const hasValidName = typeof fullName === 'string' && fullName.trim().length > 0;
+      const hasValidEmail = email === undefined || typeof email === 'string';
+      const hasValidPhone = phone === undefined || typeof phone === 'string';
+
+      return hasValidId && hasValidName && hasValidEmail && hasValidPhone;
+    };
+
     const contacts = Array.isArray(payload.contacts)
-      ? payload.contacts.filter(
-          (candidate): candidate is PersonDTO => typeof candidate === 'object' && candidate !== null
-        )
+      ? payload.contacts.filter(candidate => isPersonDTO(candidate))
       : [];
 
     const page = toPositiveInteger(payload.page ?? payload.current, 1);
@@ -407,65 +427,84 @@ export const AddressBookPage: React.FC = () => {
     return extractNormalizedContacts(apiResponse, successShape);
   };
 
-  const loadContacts = useCallback(async () => {
-    if (!tenant) {
-      setContacts([]);
+  const loadContactsWithParams = useCallback(
+    async (params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      sortField?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => {
+      if (!tenant) {
+        setContacts([]);
+        setError(null);
+        return;
+      }
+
+      setLoading(true);
       setError(null);
-      return;
-    }
 
-    setLoading(true);
-    setError(null);
+      const fullParams = {
+        page: params.page || 1,
+        limit: params.limit || 10,
+        search: params.search || undefined,
+        ...(params.sortField &&
+          params.sortOrder && { sort: `${params.sortField},${params.sortOrder}` }),
+      };
+      const result = await addressBookService.getAll(fullParams);
 
-    // Load with current search term and pagination
-    const result = await addressBookService.getAll({
+      if (result.isErr()) {
+        const errorMessage = 'Failed to load contacts';
+        setError(errorMessage);
+        message.error(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const apiResponse = result.value as ApiResponseWithLegacy<unknown>;
+
+      const normalizedData = getNormalizedContactData(apiResponse);
+
+      if (!normalizedData) {
+        const errorMessage = 'Failed to load contacts';
+        setError(errorMessage);
+        message.error(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const { contacts: rawContacts, page, pageSize, total } = normalizedData;
+      const transformedContacts = rawContacts.map(personToContact);
+      setContacts(transformedContacts);
+      setPaginationState(prev => {
+        const next = {
+          current: page,
+          pageSize,
+          total,
+        };
+
+        if (
+          prev.current === next.current &&
+          prev.pageSize === next.pageSize &&
+          prev.total === next.total
+        ) {
+          return prev;
+        }
+
+        return next;
+      });
+      setLoading(false);
+    },
+    [tenant, message, personToContact]
+  );
+
+  const loadContacts = useCallback(() => {
+    return loadContactsWithParams({
       page: currentPage,
       limit: currentPageSize,
       search: searchTerm || undefined,
     });
-
-    if (result.isErr()) {
-      const errorMessage = 'Failed to load contacts';
-      setError(errorMessage);
-      message.error(errorMessage);
-      setLoading(false);
-      return;
-    }
-
-    const apiResponse = result.value;
-
-    const normalizedData = getNormalizedContactData(apiResponse);
-
-    if (!normalizedData) {
-      const errorMessage = 'Failed to load contacts';
-      setError(errorMessage);
-      message.error(errorMessage);
-      setLoading(false);
-      return;
-    }
-
-    const { contacts: rawContacts, page, pageSize, total } = normalizedData;
-    const transformedContacts = rawContacts.map(personToContact);
-    setContacts(transformedContacts);
-    setPaginationState(prev => {
-      const next = {
-        current: page,
-        pageSize,
-        total,
-      };
-
-      if (
-        prev.current === next.current &&
-        prev.pageSize === next.pageSize &&
-        prev.total === next.total
-      ) {
-        return prev;
-      }
-
-      return next;
-    });
-    setLoading(false);
-  }, [message, tenant, personToContact, currentPage, currentPageSize, searchTerm]);
+  }, [loadContactsWithParams, currentPage, currentPageSize, searchTerm]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -658,7 +697,13 @@ export const AddressBookPage: React.FC = () => {
           >
             Edit
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} loading={loading}>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(contact.id)}
+            disabled={loading}
+          >
             Delete
           </Button>
         </Space>
@@ -666,74 +711,6 @@ export const AddressBookPage: React.FC = () => {
     },
   ];
 
-  // Define loadContactsWithParams
-  const loadContactsWithParams = async (params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    sortField?: string;
-    sortOrder?: 'asc' | 'desc';
-  }) => {
-    if (!tenant) {
-      setContacts([]);
-      setError(null);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const fullParams = {
-      page: params.page || 1,
-      limit: params.limit || 10,
-      search: params.search || undefined,
-      ...(params.sortField &&
-        params.sortOrder && { sort: `${params.sortField},${params.sortOrder}` }),
-    };
-    const result = await addressBookService.getAll(fullParams);
-
-    if (result.isErr()) {
-      const errorMessage = 'Failed to load contacts';
-      setError(errorMessage);
-      message.error(errorMessage);
-      setLoading(false);
-      return;
-    }
-
-    const apiResponse = result.value as ApiResponseWithLegacy<Contact>;
-
-    const normalizedData = getNormalizedContactData(apiResponse);
-
-    if (!normalizedData) {
-      const errorMessage = 'Failed to load contacts';
-      setError(errorMessage);
-      message.error(errorMessage);
-      setLoading(false);
-      return;
-    }
-
-    const { contacts: rawContacts, page, pageSize, total } = normalizedData;
-    const transformedContacts = rawContacts.map(personToContact);
-    setContacts(transformedContacts);
-    setPaginationState(prev => {
-      const next = {
-        current: page,
-        pageSize,
-        total,
-      };
-
-      if (
-        prev.current === next.current &&
-        prev.pageSize === next.pageSize &&
-        prev.total === next.total
-      ) {
-        return prev;
-      }
-
-      return next;
-    });
-    setLoading(false);
-  };
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>

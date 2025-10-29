@@ -120,10 +120,10 @@ describe('authService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        // Validation should fail before making API call - but returns auth error
-        expect(
-          [API_ERROR_TYPES.Validation, API_ERROR_TYPES.Authentication].includes(error.type)
-        ).toBe(true);
+        expect(error.type).toBe(API_ERROR_TYPES.Authentication);
+        expect((error.details as { originalType?: string } | undefined)?.originalType).toBe(
+          API_ERROR_TYPES.Validation
+        );
       }
     });
 
@@ -168,9 +168,9 @@ describe('authService', () => {
 
       if (result.isErr()) {
         const error = result.error;
-        expect([API_ERROR_TYPES.Server, API_ERROR_TYPES.Authentication].includes(error.type)).toBe(
-          true
-        );
+        expect(error.type).toBe(API_ERROR_TYPES.Authentication);
+        const originalType = (error.details as { originalType?: string } | undefined)?.originalType;
+        expect(originalType).toBe(API_ERROR_TYPES.Server);
         expect(error.message).toContain('parse');
       }
     });

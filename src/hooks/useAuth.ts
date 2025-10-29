@@ -44,6 +44,26 @@ const mapTokenErrorToAuthFlowError = (error: TokenError): AuthFlowError => {
   }
 };
 
+const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
+  if (
+    thrown &&
+    typeof thrown === 'object' &&
+    'type' in thrown &&
+    typeof (thrown as { type?: unknown }).type === 'string'
+  ) {
+    return thrown as AuthFlowError;
+  }
+
+  const message =
+    thrown instanceof Error
+      ? thrown.message
+      : typeof thrown === 'string'
+      ? thrown
+      : 'Unexpected authentication error';
+
+  return AuthFlowErrors.serverError(500, message);
+};
+
 /**
  * Exposes authentication helpers that wrap the context API in `Result`-returning utilities.
  *
@@ -76,7 +96,12 @@ export function useAuth() {
   const auth = useAuthContext();
 
   const hasErrorProperty = (value: unknown): value is { error: string | null } => {
-    return typeof value === 'object' && value !== null && 'error' in value;
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'error' in value &&
+      (typeof (value as { error: unknown }).error === 'string' || (value as { error: unknown }).error === null)
+    );
   };
 
   const hasClearErrorProperty = (value: unknown): value is { clearError: () => void } => {
@@ -99,11 +124,6 @@ export function useAuth() {
       return typeof candidate.isOk === 'function' && typeof candidate.isErr === 'function';
     };
 
-    const mapThrownErrorToAuthFlowError = (error: unknown): AuthFlowError => {
-      const message = error instanceof Error ? error.message : 'Login failed';
-      return AuthFlowErrors.serverError(500, message);
-    };
-
     const login = async (
       credentials: LoginCredentials
     ): Promise<Result<void, AuthFlowError | CredentialValidationError>> => {
@@ -111,93 +131,86 @@ export function useAuth() {
         const maybeResult = await auth.login(credentials);
 
         if (isNeverthrowResult(maybeResult)) {
+          // Validate or document that auth.login always returns Result<void, AuthFlowError | CredentialValidationError>
           return maybeResult as Result<void, AuthFlowError | CredentialValidationError>;
         }
 
+        // Document: auth.login is expected to return Result or throw; any other return value is treated as success
+        // Consider: if (maybeResult === false) return err(...) to handle explicit failure values
         return ok(undefined);
       } catch (error) {
         return err(mapThrownErrorToAuthFlowError(error));
       }
     };
 
-    const requireAuthResult = (): Result<boolean, AuthFlowError> => {
-      if (auth.isAuthenticated) {
-        return ok(true);
-      }
-      return err(AuthFlowErrors.unauthorized('User is not authenticated'));
-    };
-
-    const ensureAuthenticated = (): Result<void, AuthFlowError> =>
-      requireAuthResult().map(() => undefined);
-
-    const getUserResult = (): Result<NonNullable<typeof auth.user>, AuthFlowError> => {
-      if (auth.user) {
-        return ok(auth.user);
-      }
-      return err(AuthFlowErrors.unauthorized('User context is unavailable'));
-    };
-
-    const getTenantResult = (): Result<NonNullable<typeof auth.tenant>, AuthFlowError> => {
-      if (auth.tenant) {
-        return ok(auth.tenant);
-      }
-      return err(AuthFlowErrors.unauthorized('Tenant context is unavailable'));
-    };
-
-    const getTokenResult = (): Result<string, AuthFlowError> =>
-      getAuthToken()
-        .map(stored => stored.token)
-        .mapErr(mapStorageErrorToAuthFlowError);
-
-    const getTenantIdFromToken = (): Result<string, AuthFlowError> =>
-      getTokenResult().andThen(token =>
-        extractTenantId(token).mapErr(mapTokenErrorToAuthFlowError)
-      );
-
-    const getUserIdFromToken = (): Result<string, AuthFlowError> =>
-      getTokenResult().andThen(token => extractUserId(token).mapErr(mapTokenErrorToAuthFlowError));
-
-    const requireRole = (role: string): Result<void, AuthFlowError> =>
-      getUserResult().andThen(user =>
-        user.roles.includes(role)
-          ? ok(undefined)
-          : err(AuthFlowErrors.forbidden(`Missing required role: ${role}`))
-      );
-
-    const requireAnyRole = (roles: string[]): Result<void, AuthFlowError> =>
-      getUserResult().andThen(user =>
-        roles.some(role => user.roles.includes(role))
-          ? ok(undefined)
-          : err(AuthFlowErrors.forbidden(`User lacks required roles: ${roles.join(', ')}`))
-      );
-
-    const requireAllRoles = (roles: string[]): Result<void, AuthFlowError> =>
-      getUserResult().andThen(user =>
-        roles.every(role => user.roles.includes(role))
-          ? ok(undefined)
-          : err(AuthFlowErrors.forbidden(`User must have roles: ${roles.join(', ')}`))
-      );
-
-    const requireTenantAccess = (tenantId: TenantId): Result<void, AuthFlowError | AccessError> =>
-      getUserResult().andThen(user => validateTenantAccess(user, tenantId));
-
     return {
       login,
-      logout: () => auth.logout(),
-      refreshToken: () => auth.refreshToken(),
-      requireAuth: requireAuthResult,
-      ensureAuthenticated,
-      getUserResult,
-      getTenantResult,
-      getTokenResult,
-      getTenantIdFromToken,
-      getUserIdFromToken,
-      requireRole,
-      requireAnyRole,
-      requireAllRoles,
-      requireTenantAccess,
     };
   }, [auth]);
+  const requireAuthResult = (): Result<boolean, AuthFlowError> => {
+    if (auth.isAuthenticated) {
+      return ok(true);
+    }
+    return err(AuthFlowErrors.unauthorized('User is not authenticated'));
+  };
+
+  const ensureAuthenticated = (): Result<void, AuthFlowError> =>
+    requireAuthResult().map(() => undefined);
+
+  const getUserResult = (): Result<NonNullable<typeof auth.user>, AuthFlowError> => {
+    if (auth.user) {
+      return ok(auth.user);
+    }
+    return err(AuthFlowErrors.unauthorized('User context is unavailable'));
+  };
+
+  const getTenantResult = (): Result<NonNullable<typeof auth.tenant>, AuthFlowError> => {
+    if (auth.tenant) {
+      return ok(auth.tenant);
+    }
+    return err(AuthFlowErrors.unauthorized('Tenant context is unavailable'));
+  };
+
+  const getTokenResult = (): Result<string, AuthFlowError> =>
+    getAuthToken()
+      .map(stored => stored.token)
+      .mapErr(mapStorageErrorToAuthFlowError);
+
+  const getTenantIdFromToken = (): Result<string, AuthFlowError> =>
+    getTokenResult().andThen(token =>
+      extractTenantId(token).mapErr(mapTokenErrorToAuthFlowError)
+    );
+
+  const getUserIdFromToken = (): Result<string, AuthFlowError> =>
+    getTokenResult().andThen(token =>
+      extractUserId(token).mapErr(mapTokenErrorToAuthFlowError)
+    );
+
+  const requireRole = (role: string): Result<void, AuthFlowError> =>
+    getUserResult().andThen(user =>
+      user.roles.includes(role)
+        ? ok(undefined)
+        : err(AuthFlowErrors.forbidden(`Missing required role: ${role}`))
+    );
+
+  const requireAnyRole = (roles: string[]): Result<void, AuthFlowError> =>
+    getUserResult().andThen(user =>
+      roles.some(role => user.roles.includes(role))
+        ? ok(undefined)
+        : err(AuthFlowErrors.forbidden(`User lacks required roles: ${roles.join(', ')}`))
+    );
+
+  const requireAllRoles = (roles: string[]): Result<void, AuthFlowError> =>
+    getUserResult().andThen(user =>
+      roles.every(role => user.roles.includes(role))
+        ? ok(undefined)
+        : err(AuthFlowErrors.forbidden(`User must have roles: ${roles.join(', ')}`))
+    );
+
+  const requireTenantAccess = (
+    tenantId: TenantId
+  ): Result<void, AuthFlowError | AccessError> =>
+    getUserResult().andThen(user => validateTenantAccess(user, tenantId));
 
   const error = hasErrorProperty(auth) ? auth.error : null;
   const clearError = hasClearErrorProperty(auth) ? auth.clearError : () => undefined;
@@ -210,6 +223,19 @@ export function useAuth() {
     isLoading: auth.isLoading,
     error,
     clearError,
+    logout: () => auth.logout(),
+    refreshToken: () => auth.refreshToken(),
+    requireAuth: requireAuthResult,
+    ensureAuthenticated,
+    getUserResult,
+    getTenantResult,
+    getTokenResult,
+    getTenantIdFromToken,
+    getUserIdFromToken,
+    requireRole,
+    requireAnyRole,
+    requireAllRoles,
+    requireTenantAccess,
 
     // Result-based API (spread last to ensure these override)
     ...resultApi,

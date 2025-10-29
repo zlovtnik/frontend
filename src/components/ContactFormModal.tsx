@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Modal, Alert, Space, Divider, Button } from 'antd';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -74,20 +74,25 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
   useDebouncedValidation({ trigger, values: watchedValues, delay: 250, shouldValidate: open });
   useWarnOnUnsavedChanges(isDirty && open && !submitting);
 
+  const handleCancel = useCallback(() => {
+    onCancel();
+    reset(mergedInitialValues);
+  }, [onCancel, reset, mergedInitialValues]);
+
+  const prevOpenRef = React.useRef(open);
+
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpenRef.current) {
       reset(mergedInitialValues, { keepDirty: false, keepTouched: false });
     }
-  }, [open, mergedInitialValues, reset]);
+    prevOpenRef.current = open;
+  }, [open, reset, mergedInitialValues]);
 
   return (
     <Modal
       title={initialValues ? 'Edit Contact' : 'Add New Contact'}
       open={open}
-      onCancel={() => {
-        onCancel();
-        reset(mergedInitialValues);
-      }}
+      onCancel={handleCancel}
       footer={null}
       destroyOnClose
       width={520}
@@ -117,6 +122,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 type="text"
                 required
                 placeholder="Enter first name"
+                disabled={submitting}
               />
               <FormField
                 name="lastName"
@@ -124,6 +130,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 type="text"
                 required
                 placeholder="Enter last name"
+                disabled={submitting}
               />
             </Space>
 
@@ -133,8 +140,15 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 label="Email"
                 type="email"
                 placeholder="Enter email address"
+                disabled={submitting}
               />
-              <FormField name="phone" label="Phone" type="text" placeholder="Enter phone number" />
+              <FormField
+                name="phone"
+                label="Phone"
+                type="text"
+                placeholder="Enter phone number"
+                disabled={submitting}
+              />
             </Space>
 
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
@@ -148,6 +162,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                   value: option.value,
                   label: option.label,
                 }))}
+                disabled={submitting}
               />
               <FormField
                 name="age"
@@ -157,6 +172,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 placeholder="Enter age"
                 min={1}
                 max={120}
+                disabled={submitting}
               />
             </Space>
 
@@ -169,21 +185,38 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 type="text"
                 required
                 placeholder="Street address"
+                disabled={submitting}
               />
               <FormField
                 name="street2"
                 label="Street Address 2"
                 type="text"
                 placeholder="Apartment, suite, etc."
+                disabled={submitting}
               />
-              <FormField name="city" label="City" type="text" required placeholder="City" />
-              <FormField name="state" label="State" type="text" required placeholder="State" />
+              <FormField
+                name="city"
+                label="City"
+                type="text"
+                required
+                placeholder="City"
+                disabled={submitting}
+              />
+              <FormField
+                name="state"
+                label="State"
+                type="text"
+                required
+                placeholder="State"
+                disabled={submitting}
+              />
               <FormField
                 name="zipCode"
                 label="ZIP Code"
                 type="text"
                 required
                 placeholder="ZIP / Postal code"
+                disabled={submitting}
               />
               <FormField
                 name="country"
@@ -191,16 +224,14 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 type="text"
                 required
                 placeholder="Country"
+                disabled={submitting}
               />
             </Space>
 
             <Space style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
               <Button
                 type="default"
-                onClick={() => {
-                  onCancel();
-                  reset(mergedInitialValues);
-                }}
+                onClick={handleCancel}
               >
                 Cancel
               </Button>
