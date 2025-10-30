@@ -119,7 +119,7 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
   const copyConnectionString = useCallback(
     async (connectionString: string) => {
       try {
-        if (!connectionString || connectionString.trim().length === 0) {
+        if (connectionString?.trim().length === 0) {
           message.warning('No connection string to copy');
           return;
         }
@@ -193,7 +193,10 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
                   title={
                     <Space>
                       <Text strong>{tenant.name}</Text>
-                      <Badge status={statusDisplay.color as BadgeStatus} text={statusDisplay.text} />
+                      <Badge
+                        status={statusDisplay.color as BadgeStatus}
+                        text={statusDisplay.text}
+                      />
                     </Space>
                   }
                   extra={

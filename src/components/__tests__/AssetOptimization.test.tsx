@@ -11,9 +11,7 @@ describe('Asset Optimization Components', () => {
 
   describe('LazyImage', () => {
     it('should render with required props', () => {
-      const { container } = render(
-        <LazyImage src="/test.jpg" alt="Test image" />
-      );
+      const { container } = render(<LazyImage src="/test.jpg" alt="Test image" />);
       const img = container.querySelector('img');
       expect(img).toBeDefined();
       expect(img?.getAttribute('src')).toBe('/test.jpg');
@@ -21,9 +19,7 @@ describe('Asset Optimization Components', () => {
     });
 
     it('should set loading attribute to lazy', () => {
-      const { container } = render(
-        <LazyImage src="/test.jpg" alt="Test image" />
-      );
+      const { container } = render(<LazyImage src="/test.jpg" alt="Test image" />);
       const img = container.querySelector('img');
       expect(img?.getAttribute('loading')).toBe('lazy');
     });
@@ -47,9 +43,7 @@ describe('Asset Optimization Components', () => {
 
     it('should call onLoad handler when image loads', () => {
       const onLoad = () => {};
-      const { container } = render(
-        <LazyImage src="/test.jpg" alt="Test image" onLoad={onLoad} />
-      );
+      const { container } = render(<LazyImage src="/test.jpg" alt="Test image" onLoad={onLoad} />);
       const img = container.querySelector('img');
       expect(img?.onload).toBeDefined();
     });
@@ -66,9 +60,7 @@ describe('Asset Optimization Components', () => {
 
   describe('ResponsiveImage', () => {
     it('should render picture element with sources', () => {
-      const { container } = render(
-        <ResponsiveImage src="/test.jpg" alt="Test image" />
-      );
+      const { container } = render(<ResponsiveImage src="/test.jpg" alt="Test image" />);
       const picture = container.querySelector('picture');
       expect(picture).toBeDefined();
       const sources = container.querySelectorAll('source');
@@ -92,11 +84,7 @@ describe('Asset Optimization Components', () => {
 
     it('should render source elements in correct priority order (avif, webp, original)', () => {
       const { container } = render(
-        <ResponsiveImage 
-          src="/test.jpg" 
-          alt="Test image" 
-          format={['avif', 'webp', 'original']} 
-        />
+        <ResponsiveImage src="/test.jpg" alt="Test image" format={['avif', 'webp', 'original']} />
       );
       const sources = container.querySelectorAll('source');
       const types: (string | null)[] = [];
@@ -112,11 +100,7 @@ describe('Asset Optimization Components', () => {
     it('should apply sizes attribute to sources', () => {
       const customSizes = '(max-width: 600px) 100vw, 50vw';
       const { container } = render(
-        <ResponsiveImage 
-          src="/test.jpg" 
-          alt="Test image" 
-          sizes={customSizes} 
-        />
+        <ResponsiveImage src="/test.jpg" alt="Test image" sizes={customSizes} />
       );
       const sources = container.querySelectorAll('source');
       sources.forEach(source => {
@@ -126,18 +110,19 @@ describe('Asset Optimization Components', () => {
 
     it('should handle URLs with existing query parameters', () => {
       const { container } = render(
-        <ResponsiveImage 
-          src="/test.jpg?quality=80" 
-          alt="Test image" 
-          widths={[320]} 
-        />
+        <ResponsiveImage src="/test.jpg?quality=80" alt="Test image" widths={[320]} />
       );
       const sources = container.querySelectorAll('source');
       let hasCorrectUrl = false;
       sources.forEach(source => {
         const srcset = source.getAttribute('srcset');
         // Should have w=320 and quality=80, joined with &, not multiple ?
-        if (srcset && srcset.includes('w=320') && srcset.includes('quality=80') && !srcset.includes('?w=320?')) {
+        if (
+          srcset &&
+          srcset.includes('w=320') &&
+          srcset.includes('quality=80') &&
+          !srcset.includes('?w=320?')
+        ) {
           hasCorrectUrl = true;
         }
       });
@@ -147,9 +132,7 @@ describe('Asset Optimization Components', () => {
 
   describe('IconSprite', () => {
     it('should render SVG element with correct dimensions', () => {
-      const { container } = render(
-        <IconSprite name="heart" width={24} height={24} />
-      );
+      const { container } = render(<IconSprite name="heart" width={24} height={24} />);
       const svg = container.querySelector('svg');
       expect(svg).toBeDefined();
       expect(svg?.getAttribute('width')).toBe('24');
@@ -157,41 +140,31 @@ describe('Asset Optimization Components', () => {
     });
 
     it('should apply fill color', () => {
-      const { container } = render(
-        <IconSprite name="heart" fill="#ff0000" />
-      );
+      const { container } = render(<IconSprite name="heart" fill="#ff0000" />);
       const svg = container.querySelector('svg');
       expect(svg?.getAttribute('fill')).toBe('#ff0000');
     });
 
     it('should apply custom className', () => {
-      const { container } = render(
-        <IconSprite name="heart" className="custom-icon" />
-      );
+      const { container } = render(<IconSprite name="heart" className="custom-icon" />);
       const svg = container.querySelector('svg');
       expect(svg?.classList.contains('custom-icon')).toBe(true);
     });
 
     it('should reference correct sprite id in use element', () => {
-      const { container } = render(
-        <IconSprite name="heart" />
-      );
+      const { container } = render(<IconSprite name="heart" />);
       const use = container.querySelector('use');
       expect(use?.getAttribute('href')).toBe('/icons/sprite.svg#heart');
     });
 
     it('should set aria-hidden when no ariaLabel provided', () => {
-      const { container } = render(
-        <IconSprite name="heart" />
-      );
+      const { container } = render(<IconSprite name="heart" />);
       const svg = container.querySelector('svg');
       expect(svg?.getAttribute('aria-hidden')).toBe('true');
     });
 
     it('should set accessibility attributes when ariaLabel provided', () => {
-      const { container } = render(
-        <IconSprite name="heart" ariaLabel="Favorite" />
-      );
+      const { container } = render(<IconSprite name="heart" ariaLabel="Favorite" />);
       const svg = container.querySelector('svg');
       expect(svg?.getAttribute('role')).toBe('img');
       expect(svg?.getAttribute('aria-label')).toBe('Favorite');
@@ -199,9 +172,7 @@ describe('Asset Optimization Components', () => {
     });
 
     it('should render title element with ariaLabel when provided', () => {
-      const { container } = render(
-        <IconSprite name="heart" ariaLabel="Favorite" />
-      );
+      const { container } = render(<IconSprite name="heart" ariaLabel="Favorite" />);
       const title = container.querySelector('title');
       expect(title).toBeDefined();
       expect(title?.textContent).toBe('Favorite');
@@ -234,7 +205,7 @@ describe('Performance Optimization', () => {
     it('should support WebP format detection', () => {
       // Test WebP support detection
       const canvas = document.createElement('canvas');
-      const webpSupported = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+      const webpSupported = canvas.toDataURL('image/webp').startsWith('data:image/webp');
       expect(typeof webpSupported).toBe('boolean');
     });
   });
@@ -247,7 +218,7 @@ describe('Performance Optimization', () => {
         html: 'html',
         api: 'api-cache',
       };
-      
+
       Object.values(cacheNames).forEach(name => {
         expect(typeof name).toBe('string');
         expect(name.length).toBeGreaterThan(0);

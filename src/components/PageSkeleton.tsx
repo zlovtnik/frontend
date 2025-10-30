@@ -33,27 +33,36 @@ export const PageSkeleton: React.FC<PageSkeletonProps> = ({
           <Skeleton active paragraph={{ rows: 4 }} style={{ marginTop: 24 }} />
         </>
       )}
-      
+
       {variant === 'table' && (
         <>
           <Skeleton active title paragraph={false} style={{ marginBottom: 16 }} />
           <Skeleton active title={false} paragraph={{ rows: 8 }} />
         </>
       )}
-      
+
       {variant === 'card' && (
         <>
           <Skeleton active title paragraph={false} style={{ marginBottom: 24 }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '16px',
+            }}
+          >
             {Array.from({ length: cardCount }).map((_, index) => (
-              <div key={index} style={{ padding: '16px', border: '1px solid #f0f0f0', borderRadius: '8px' }}>
+              <div
+                key={index}
+                style={{ padding: '16px', border: '1px solid #f0f0f0', borderRadius: '8px' }}
+              >
                 <Skeleton active paragraph={{ rows: 3 }} />
               </div>
             ))}
           </div>
         </>
       )}
-      
+
       {variant === 'form' && (
         <>
           <Skeleton active title paragraph={false} style={{ marginBottom: 24 }} />

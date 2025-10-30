@@ -179,116 +179,119 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   }, []);
 
   // Test database connection
-  const testDatabaseConnection = useCallback(async (url: string) => {
-    const trimmed = url?.trim() ?? '';
-    const requestId = latestConnectionTestRef.current + 1;
-    latestConnectionTestRef.current = requestId;
+  const testDatabaseConnection = useCallback(
+    async (url: string) => {
+      const trimmed = url?.trim() ?? '';
+      const requestId = latestConnectionTestRef.current + 1;
+      latestConnectionTestRef.current = requestId;
 
-    if (connectionTestAbortControllerRef.current) {
-      connectionTestAbortControllerRef.current.abort();
-      connectionTestAbortControllerRef.current = null;
-    }
-
-    if (trimmed.length === 0) {
-      setConnectionStatus('idle');
-      setConnectionMessage('');
-      return;
-    }
-
-    if (!isValidPostgresConnectionString(trimmed)) {
-      setConnectionStatus('error');
-      setConnectionMessage(DATABASE_URL_ERROR_MESSAGE);
-      return;
-    }
-
-    setConnectionStatus('testing');
-    setConnectionMessage('');
-
-    let controller: AbortController | null = null;
-    let timeoutId: number | null = null;
-
-    try {
-      const baseUrl = getEnv().apiUrl ?? '';
-      controller = new AbortController();
-      connectionTestAbortControllerRef.current = controller;
-      timeoutId = window.setTimeout(() => controller?.abort(), CONNECTION_TEST_TIMEOUT_MS);
-
-      const response = await fetch(`${baseUrl}/tenant/test-connection`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ db_url: trimmed }),
-        signal: controller.signal,
-        credentials: 'include',
-      });
-
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      if (latestConnectionTestRef.current !== requestId) {
-        return;
-      }
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => undefined);
-        const message = extractConnectionErrorMessage(
-          errorBody,
-          'Unable to verify database connection'
-        );
-
-        if (latestConnectionTestRef.current === requestId) {
-          setConnectionStatus('error');
-          setConnectionMessage(message);
-        }
-        return;
-      }
-
-      const payload = (await response.json().catch(() => undefined)) as unknown;
-
-      if (!isConnectionTestPayload(payload)) {
-        if (latestConnectionTestRef.current === requestId) {
-          setConnectionStatus('success');
-          setConnectionMessage('Connection successful');
-        }
-        return;
-      }
-
-      if (payload.status === 'error') {
-        if (latestConnectionTestRef.current === requestId) {
-          setConnectionStatus('error');
-          setConnectionMessage(payload.message);
-        }
-        return;
-      }
-
-      const successMessage = payload.message ?? 'Connection successful';
-      if (latestConnectionTestRef.current === requestId) {
-        setConnectionStatus('success');
-        setConnectionMessage(successMessage);
-      }
-    } catch (error) {
-      if (latestConnectionTestRef.current !== requestId) {
-        return;
-      }
-
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return;
-      }
-      const fallbackMessage =
-        error instanceof Error ? error.message : 'Unexpected error while testing connection';
-      setConnectionStatus('error');
-      setConnectionMessage(fallbackMessage);
-    } finally {
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-      if (controller && connectionTestAbortControllerRef.current === controller) {
+      if (connectionTestAbortControllerRef.current) {
+        connectionTestAbortControllerRef.current.abort();
         connectionTestAbortControllerRef.current = null;
       }
-    }
-  }, [extractConnectionErrorMessage]);
+
+      if (trimmed.length === 0) {
+        setConnectionStatus('idle');
+        setConnectionMessage('');
+        return;
+      }
+
+      if (!isValidPostgresConnectionString(trimmed)) {
+        setConnectionStatus('error');
+        setConnectionMessage(DATABASE_URL_ERROR_MESSAGE);
+        return;
+      }
+
+      setConnectionStatus('testing');
+      setConnectionMessage('');
+
+      let controller: AbortController | null = null;
+      let timeoutId: number | null = null;
+
+      try {
+        const baseUrl = getEnv().apiUrl ?? '';
+        controller = new AbortController();
+        connectionTestAbortControllerRef.current = controller;
+        timeoutId = window.setTimeout(() => controller?.abort(), CONNECTION_TEST_TIMEOUT_MS);
+
+        const response = await fetch(`${baseUrl}/tenant/test-connection`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ db_url: trimmed }),
+          signal: controller.signal,
+          credentials: 'include',
+        });
+
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (latestConnectionTestRef.current !== requestId) {
+          return;
+        }
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => undefined);
+          const message = extractConnectionErrorMessage(
+            errorBody,
+            'Unable to verify database connection'
+          );
+
+          if (latestConnectionTestRef.current === requestId) {
+            setConnectionStatus('error');
+            setConnectionMessage(message);
+          }
+          return;
+        }
+
+        const payload = (await response.json().catch(() => undefined)) as unknown;
+
+        if (!isConnectionTestPayload(payload)) {
+          if (latestConnectionTestRef.current === requestId) {
+            setConnectionStatus('success');
+            setConnectionMessage('Connection successful');
+          }
+          return;
+        }
+
+        if (payload.status === 'error') {
+          if (latestConnectionTestRef.current === requestId) {
+            setConnectionStatus('error');
+            setConnectionMessage(payload.message);
+          }
+          return;
+        }
+
+        const successMessage = payload.message ?? 'Connection successful';
+        if (latestConnectionTestRef.current === requestId) {
+          setConnectionStatus('success');
+          setConnectionMessage(successMessage);
+        }
+      } catch (error) {
+        if (latestConnectionTestRef.current !== requestId) {
+          return;
+        }
+
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+        const fallbackMessage =
+          error instanceof Error ? error.message : 'Unexpected error while testing connection';
+        setConnectionStatus('error');
+        setConnectionMessage(fallbackMessage);
+      } finally {
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+        if (controller && connectionTestAbortControllerRef.current === controller) {
+          connectionTestAbortControllerRef.current = null;
+        }
+      }
+    },
+    [extractConnectionErrorMessage]
+  );
 
   // Comprehensive form validation
   const validateForm = useCallback(

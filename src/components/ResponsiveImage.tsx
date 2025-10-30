@@ -33,27 +33,26 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
       // Split baseSrc at the first '?' to separate pathname and query
       const [pathname = '', ...queryParts] = baseSrc.split('?');
       const queryString = queryParts.join('?'); // Rejoin in case there were multiple '?'
-      
+
       // Parse existing query string into URLSearchParams
       const params = new URLSearchParams(queryString);
-      
+
       // Compute modifiedPath once based on formatType
-      const modifiedPath = formatType === 'original'
-        ? pathname
-        : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
-      
+      const modifiedPath =
+        formatType === 'original' ? pathname : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
+
       return widths
         .map(w => {
           // Set/overwrite the width parameter
           params.set('w', String(w));
-          
+
           // Build URL with merged query string
           const formattedSrc = `${modifiedPath}?${params.toString()}`;
           return `${formattedSrc} ${w}w`;
         })
         .join(', ');
     },
-    [widths],
+    [widths]
   );
 
   // Normalize format to array for consistent handling
@@ -67,7 +66,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
   // Generate srcSets for each format in priority order
   const srcSets = React.useMemo(() => {
     const sets: { format: string; srcSet: string; type?: string }[] = [];
-    
+
     formatArray.forEach(fmt => {
       if (fmt === 'original') {
         const baseForOriginal = fallback ?? src;
@@ -89,7 +88,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
         });
       }
     });
-    
+
     return sets;
   }, [formatArray, generateSrcSet, fallback, src]);
 
@@ -98,11 +97,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
       {srcSets.map((srcSetItem, idx) => {
         if (srcSetItem.format === 'original') {
           return (
-            <source
-              key={`${srcSetItem.format}-${idx}`}
-              srcSet={srcSetItem.srcSet}
-              sizes={sizes}
-            />
+            <source key={`${srcSetItem.format}-${idx}`} srcSet={srcSetItem.srcSet} sizes={sizes} />
           );
         }
         return (

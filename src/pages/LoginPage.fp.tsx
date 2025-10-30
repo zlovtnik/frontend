@@ -15,7 +15,15 @@ import { useAuth } from '@/hooks/useAuth';
 import type { LoginCredentials } from '@/types/auth';
 import type { AuthFlowError } from '@/types/errors';
 import type { TenantId } from '@/types/ids';
-import { Card, Button, Typography, Alert, Flex, Space, Checkbox } from '@/components/AntdComponents';
+import {
+  Card,
+  Button,
+  Typography,
+  Alert,
+  Flex,
+  Space,
+  Checkbox,
+} from '@/components/AntdComponents';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
@@ -44,18 +52,13 @@ const credentialFieldMap: Record<CredentialValidationError['type'], keyof LoginF
   INVALID_TENANT_ID_FORMAT: 'tenantId',
 };
 
-const isCredentialValidationError = (
-  error: unknown
-): error is CredentialValidationError => {
+const isCredentialValidationError = (error: unknown): error is CredentialValidationError => {
   if (!error || typeof error !== 'object') {
     return false;
   }
 
   const candidate = error as { type?: unknown };
-  return (
-    typeof candidate.type === 'string' &&
-    candidate.type in credentialFieldMap
-  );
+  return typeof candidate.type === 'string' && candidate.type in credentialFieldMap;
 };
 
 const formatAuthFlowError = (error: AuthFlowError): string => {
@@ -264,7 +267,9 @@ export const LoginPageFP: React.FC = () => {
                   description={submissionError}
                   type="error"
                   closable
-                  onClose={() => setSubmissionError(null)}
+                  onClose={() => {
+                    setSubmissionError(null);
+                  }}
                   role="alert"
                 />
               )}

@@ -1,10 +1,10 @@
 /**
  * Centralized Ant Design Component Imports
- * 
+ *
  * This barrel file provides organizational and centralized dependency management
  * for Ant Design components across the codebase. All files should import from here
  * instead of directly from 'antd' to maintain consistent imports.
- * 
+ *
  * Note: Modern bundlers (Webpack, Vite, etc.) already tree-shake direct 'antd' imports.
  * If bundle size optimization is needed, consider using explicit subpath imports
  * (e.g., 'antd/es/button' or 'antd/button') instead of this barrel.

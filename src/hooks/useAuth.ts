@@ -47,7 +47,7 @@ const mapTokenErrorToAuthFlowError = (error: TokenError): AuthFlowError => {
 const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
   if (thrown && typeof thrown === 'object' && 'type' in thrown) {
     const candidate = thrown as { type?: unknown; message?: unknown; statusCode?: unknown };
-    
+
     // Verify that type is one of the known AuthFlowError discriminants
     const validTypes = [
       'INVALID_CREDENTIALS',
@@ -62,7 +62,7 @@ const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
       'MISSING_TOKEN',
       'TENANT_MISMATCH',
     ];
-    
+
     if (typeof candidate.type === 'string' && validTypes.includes(candidate.type)) {
       // Validate required fields per discriminant
       if (candidate.type === 'SERVER_ERROR') {
@@ -86,8 +86,8 @@ const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
     thrown instanceof Error
       ? thrown.message
       : typeof thrown === 'string'
-      ? thrown
-      : 'Unexpected authentication error';
+        ? thrown
+        : 'Unexpected authentication error';
 
   return AuthFlowErrors.serverError(500, message);
 };
@@ -128,7 +128,8 @@ export function useAuth() {
       typeof value === 'object' &&
       value !== null &&
       'error' in value &&
-      (typeof (value as { error: unknown }).error === 'string' || (value as { error: unknown }).error === null)
+      (typeof (value as { error: unknown }).error === 'string' ||
+        (value as { error: unknown }).error === null)
     );
   };
 
@@ -205,14 +206,10 @@ export function useAuth() {
       .mapErr(mapStorageErrorToAuthFlowError);
 
   const getTenantIdFromToken = (): Result<string, AuthFlowError> =>
-    getTokenResult().andThen(token =>
-      extractTenantId(token).mapErr(mapTokenErrorToAuthFlowError)
-    );
+    getTokenResult().andThen(token => extractTenantId(token).mapErr(mapTokenErrorToAuthFlowError));
 
   const getUserIdFromToken = (): Result<string, AuthFlowError> =>
-    getTokenResult().andThen(token =>
-      extractUserId(token).mapErr(mapTokenErrorToAuthFlowError)
-    );
+    getTokenResult().andThen(token => extractUserId(token).mapErr(mapTokenErrorToAuthFlowError));
 
   const requireRole = (role: string): Result<void, AuthFlowError> =>
     getUserResult().andThen(user =>
@@ -235,9 +232,7 @@ export function useAuth() {
         : err(AuthFlowErrors.forbidden(`User must have roles: ${roles.join(', ')}`))
     );
 
-  const requireTenantAccess = (
-    tenantId: TenantId
-  ): Result<void, AuthFlowError | AccessError> =>
+  const requireTenantAccess = (tenantId: TenantId): Result<void, AuthFlowError | AccessError> =>
     getUserResult().andThen(user => validateTenantAccess(user, tenantId));
 
   const error = hasErrorProperty(auth) ? auth.error : null;

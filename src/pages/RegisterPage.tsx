@@ -237,11 +237,7 @@ export const RegisterPage: React.FC = () => {
                 style={{ color: 'var(--primary-600)', marginLeft: '8px' }}
               >
                 I accept the{' '}
-                <a
-                  href="https://www.example.com/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href="https://www.example.com/terms" target="_blank" rel="noopener noreferrer">
                   Terms and Conditions
                 </a>
               </label>

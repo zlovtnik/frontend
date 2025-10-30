@@ -3,8 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
-import { viteImagemin } from 'vite-plugin-imagemin';
-import brotli from '@rollup/plugin-brotli';
+import viteImagemin from 'vite-plugin-imagemin';
 
 // Import cache strategies
 import { staticAssetCache, resourceCache, htmlCache } from './src/config/cacheStrategies';
@@ -49,11 +48,6 @@ export default defineConfig({
           { name: 'removeEmptyAttrs', active: false },
         ],
       },
-    }),
-    brotli({
-      algorithm: 'brotliCompress',
-      extension: 'br',
-      quality: 11,
     }),
     visualizer({
       filename: 'dist/stats.html',

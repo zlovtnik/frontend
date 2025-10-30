@@ -8,7 +8,7 @@ export const ICON_NAMES = {
   // ... more icons
 } as const;
 
-export type IconName = typeof ICON_NAMES[keyof typeof ICON_NAMES];
+export type IconName = (typeof ICON_NAMES)[keyof typeof ICON_NAMES];
 
 interface IconSpriteProps {
   name: IconName;
@@ -41,9 +41,7 @@ export const IconSprite: React.FC<IconSpriteProps> = ({
       aria-hidden={!ariaLabel}
       focusable={ariaLabel ? undefined : 'false'}
     >
-      {ariaLabel && titleId && (
-        <title id={titleId}>{ariaLabel}</title>
-      )}
+      {ariaLabel && titleId && <title id={titleId}>{ariaLabel}</title>}
       <use href={`/icons/sprite.svg#${name}`} />
     </svg>
   );

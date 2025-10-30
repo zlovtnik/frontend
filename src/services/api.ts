@@ -1526,7 +1526,10 @@ export const addressBookService = {
       payload.gender = false;
     }
 
-    return transformApiResponse(apiClient.post<unknown>('/address-book', payload), mapContact.fromApi);
+    return transformApiResponse(
+      apiClient.post<unknown>('/address-book', payload),
+      mapContact.fromApi
+    );
   },
 
   /**

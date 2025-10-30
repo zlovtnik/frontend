@@ -9,8 +9,8 @@ const createObserverManager = () => {
   const getObserver = (): IntersectionObserver => {
     if (!observer) {
       observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
+        entries => {
+          entries.forEach(entry => {
             if (entry.isIntersecting) {
               const callback = callbacks.get(entry.target);
               if (callback) {
@@ -47,7 +47,8 @@ const createObserverManager = () => {
 const observerManager = createObserverManager();
 
 // Transparent 1×1 GIF data URL for placeholder
-const PLACEHOLDER_DATA_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+const PLACEHOLDER_DATA_URL =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
 interface LazyImageProps {
   src: string;
@@ -79,15 +80,17 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   // Effect to observe/unobserve when the image element changes or error state changes
   useEffect(() => {
     const el = imgRef.current;
-    
+
     // Unobserve the old element if it changed
     if (observedElementRef.current && observedElementRef.current !== el) {
       observerManager.unobserve(observedElementRef.current);
     }
-    
+
     // Observe the new element if it exists and no error
     if (el && !hasError) {
-      observerManager.observe(el, () => setIsInView(true));
+      observerManager.observe(el, () => {
+        setIsInView(true);
+      });
       observedElementRef.current = el;
     } else {
       observedElementRef.current = null;
@@ -130,8 +133,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
           ref={imgRef}
           src={isInView ? src : PLACEHOLDER_DATA_URL}
           alt={alt}
-          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
           style={{ width, height }}
           onLoad={handleLoad}
           onError={handleError}
@@ -139,14 +141,12 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
 
       {hasError && (
-        <div 
+        <div
           className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-500"
           role="img"
           aria-label="Image failed to load"
         >
-          {placeholder || (
-            <span className="text-sm">Image failed to load</span>
-          )}
+          {placeholder || <span className="text-sm">Image failed to load</span>}
         </div>
       )}
     </div>
