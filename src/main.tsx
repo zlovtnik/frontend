@@ -72,9 +72,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 
 // Preload common passwords for synchronous access
-preloadCommonPasswords().catch((error: unknown) => {
-  console.warn('Failed to preload common passwords:', error);
-});
+// Temporarily disabled to debug vendor bundle error
+// preloadCommonPasswords().catch((error: unknown) => {
+//   console.warn('Failed to preload common passwords:', error);
+// });
 
 root.render(
   <React.StrictMode>
