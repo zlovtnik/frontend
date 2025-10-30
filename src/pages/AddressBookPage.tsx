@@ -153,9 +153,8 @@ const ActionButtons = memo<ActionButtonsProps>(({ contact, isLoading, onEdit, on
       type="link"
       icon={<EditOutlined />}
       data-testid={`edit-${contact.id}`}
-      onClick={() => {
-        onEdit(contact);
-      }}
+      onClick={() => onEdit(contact)}
+      disabled={isLoading}
     >
       Edit
     </Button>
@@ -163,9 +162,7 @@ const ActionButtons = memo<ActionButtonsProps>(({ contact, isLoading, onEdit, on
       type="link"
       danger
       icon={<DeleteOutlined />}
-      onClick={() => {
-        onDelete(contact.id);
-      }}
+      onClick={() => onDelete(contact.id)}
       disabled={isLoading}
     >
       Delete

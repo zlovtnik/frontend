@@ -55,17 +55,17 @@ if (import.meta.env.DEV) {
       const errorMessage = errorObj?.message || String(error);
 
       // Check for module not found errors (expected case)
+      // Only treat as expected if it's a MODULE_NOT_FOUND or "Cannot find module" error
       if (
-        errorMessage.includes('Cannot find module') ||
-        errorMessage.includes('Failed to fetch dynamically imported module')
+        errorObj.code === 'MODULE_NOT_FOUND' ||
+        errorMessage.includes('Cannot find module')
       ) {
-        if (errorObj.code === 'MODULE_NOT_FOUND' || errorMessage.includes('Cannot find module')) {
-          // Expected error - why-did-you-render not installed, silently continue
-          return;
-        }
+        // Expected error - why-did-you-render not installed, silently continue
+        return;
       }
 
       // Log unexpected errors to help developers debug configuration issues
+      // This includes "Failed to fetch dynamically imported module" which may indicate other issues
       // eslint-disable-next-line no-console
       console.warn('[whyDidYouRender] Failed to initialize:', errorMessage);
     }

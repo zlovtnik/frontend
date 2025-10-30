@@ -90,6 +90,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
   const [connectionMessage, setConnectionMessage] = useState<string>('');
   const latestConnectionTestRef = useRef(0);
   const connectionTestAbortControllerRef = useRef<AbortController | null>(null);
+  const connectionTestTimeoutRef = useRef<number | null>(null);
 
   const extractConnectionErrorMessage = useCallback(
     (errorBody: unknown, defaultMessage: string): string => {
@@ -142,6 +143,10 @@ export const TenantForm: React.FC<TenantFormProps> = ({
       if (connectionTestAbortControllerRef.current) {
         connectionTestAbortControllerRef.current.abort();
         connectionTestAbortControllerRef.current = null;
+      }
+      if (connectionTestTimeoutRef.current !== null) {
+        window.clearTimeout(connectionTestTimeoutRef.current);
+        connectionTestTimeoutRef.current = null;
       }
     };
   }, []);
@@ -214,6 +219,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         connectionTestAbortControllerRef.current = controller;
         // controller is guaranteed to be assigned before this callback executes
         timeoutId = window.setTimeout(() => controller!.abort(), CONNECTION_TEST_TIMEOUT_MS);
+        connectionTestTimeoutRef.current = timeoutId;
 
         const response = await fetch(`${baseUrl}/tenant/test-connection`, {
           method: 'POST',
@@ -276,10 +282,8 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         }
 
         if (error instanceof DOMException && error.name === 'AbortError') {
-          if (latestConnectionTestRef.current === requestId) {
-            setConnectionStatus('error');
-            setConnectionMessage('Connection test timed out');
-          }
+          setConnectionStatus('error');
+          setConnectionMessage('Connection test timed out');
           return;
         }
         const fallbackMessage =

@@ -67,14 +67,79 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({
     [isLoading]
   );
 
-  // Memoize operations context - callbacks are already stable from parent
-  // but we wrap them in useCallback to ensure they don't change unnecessarily
-  const memoizedLogin = useCallback(login, [login]);
-  const memoizedLogout = useCallback(logout, [logout]);
-  const memoizedRefreshToken = useCallback(refreshToken, [refreshToken]);
-  const memoizedRegister = useCallback(register, [register]);
-  const memoizedRequestPasswordReset = useCallback(requestPasswordReset, [requestPasswordReset]);
-  const memoizedConfirmPasswordReset = useCallback(confirmPasswordReset, [confirmPasswordReset]);
+  // Wrap operations with loading state management
+  // Each wrapper sets isLoading before calling the operation and clears it in finally block
+  const memoizedLogin = useCallback(
+    async (credentials: LoginCredentials) => {
+      setIsLoading(true);
+      try {
+        return await login(credentials);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [login]
+  );
+
+  const memoizedLogout = useCallback(
+    async () => {
+      setIsLoading(true);
+      try {
+        return await logout();
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [logout]
+  );
+
+  const memoizedRefreshToken = useCallback(
+    async () => {
+      setIsLoading(true);
+      try {
+        return await refreshToken();
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [refreshToken]
+  );
+
+  const memoizedRegister = useCallback(
+    async (data: RegisterData) => {
+      setIsLoading(true);
+      try {
+        return await register(data);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [register]
+  );
+
+  const memoizedRequestPasswordReset = useCallback(
+    async (email: string) => {
+      setIsLoading(true);
+      try {
+        return await requestPasswordReset(email);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [requestPasswordReset]
+  );
+
+  const memoizedConfirmPasswordReset = useCallback(
+    async (data: PasswordResetConfirm) => {
+      setIsLoading(true);
+      try {
+        return await confirmPasswordReset(data);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [confirmPasswordReset]
+  );
 
   const operationsValue: AuthOperationsContextType = useMemo(
     () => ({
