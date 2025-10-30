@@ -212,7 +212,8 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         const baseUrl = getEnv().apiUrl ?? '';
         controller = new AbortController();
         connectionTestAbortControllerRef.current = controller;
-        timeoutId = window.setTimeout(() => controller?.abort(), CONNECTION_TEST_TIMEOUT_MS);
+        // controller is guaranteed to be assigned before this callback executes
+        timeoutId = window.setTimeout(() => controller!.abort(), CONNECTION_TEST_TIMEOUT_MS);
 
         const response = await fetch(`${baseUrl}/tenant/test-connection`, {
           method: 'POST',
@@ -275,6 +276,10 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         }
 
         if (error instanceof DOMException && error.name === 'AbortError') {
+          if (latestConnectionTestRef.current === requestId) {
+            setConnectionStatus('error');
+            setConnectionMessage('Connection test timed out');
+          }
           return;
         }
         const fallbackMessage =

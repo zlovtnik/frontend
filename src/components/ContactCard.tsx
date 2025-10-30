@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Card, Space, Button, Typography, Tag } from '@/components/AntdComponents';
-import { EditOutlined, DeleteOutlined, MailOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import type { Contact } from '@/types/contact';
 
 interface ContactCardProps {
@@ -22,13 +22,6 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
   onDelete,
   isLoading = false,
 }) => {
-  const handleEdit = () => {
-    onEdit(contact);
-  };
-  const handleDelete = () => {
-    onDelete(contact.id);
-  };
-
   return (
     <Card
       hoverable
@@ -38,7 +31,7 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
           key="edit"
           type="text"
           icon={<EditOutlined />}
-          onClick={handleEdit}
+          onClick={() => onEdit(contact)}
           disabled={isLoading}
         >
           Edit
@@ -48,7 +41,7 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
           type="text"
           danger
           icon={<DeleteOutlined />}
-          onClick={handleDelete}
+          onClick={() => onDelete(contact.id)}
           disabled={isLoading}
         >
           Delete
@@ -67,7 +60,12 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
           </Space>
         )}
 
-        {contact.phone && <Typography.Text type="secondary">📞 {contact.phone}</Typography.Text>}
+        {contact.phone && (
+          <Space size="small">
+            <PhoneOutlined />
+            <Typography.Text type="secondary">{contact.phone}</Typography.Text>
+          </Space>
+        )}
 
         {contact.address && (
           <Typography.Text type="secondary" ellipsis>

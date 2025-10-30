@@ -136,7 +136,7 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
   // Get status color and icon
   const getStatusDisplay = (
     status: DatabaseInfo['status']
-  ): { color: string; icon: React.ReactNode; text: string } => {
+  ): { color: BadgeStatus; icon: React.ReactNode; text: string } => {
     switch (status) {
       case 'connected':
         return { color: 'success', icon: <CheckCircleOutlined />, text: 'Connected' };
@@ -194,7 +194,7 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
                     <Space>
                       <Text strong>{tenant.name}</Text>
                       <Badge
-                        status={statusDisplay.color as BadgeStatus}
+                        status={statusDisplay.color}
                         text={statusDisplay.text}
                       />
                     </Space>

@@ -74,6 +74,7 @@ const Row = memo(
                 data.onEdit(contact);
               }}
               disabled={data.isLoading}
+              loading={data.isLoading}
             />
             <Button
               type="text"
@@ -84,6 +85,7 @@ const Row = memo(
                 data.onDelete(contact.id);
               }}
               disabled={data.isLoading}
+              loading={data.isLoading}
             />
           </Space>
         </Space>

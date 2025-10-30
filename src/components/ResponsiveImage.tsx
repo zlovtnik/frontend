@@ -57,11 +57,13 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
   );
 
   // Normalize format to array for consistent handling
+  // Guard against undefined by using default format and filtering falsy values
   const formatArray = React.useMemo(() => {
-    if (Array.isArray(format)) {
-      return format;
+    const normalizedFormat = format ?? 'webp';
+    if (Array.isArray(normalizedFormat)) {
+      return normalizedFormat.filter((f): f is 'webp' | 'avif' | 'original' => !!f);
     }
-    return [format];
+    return [normalizedFormat];
   }, [format]);
 
   // Generate srcSets for each format in priority order

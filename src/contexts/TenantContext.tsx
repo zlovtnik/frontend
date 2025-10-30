@@ -11,9 +11,8 @@ export interface TenantContextType {
   setTenant: (tenant: Tenant | null) => void;
 }
 
+// TenantContext is kept private to enforce hook-based access via useTenant
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
-
-export { TenantContext };
 
 interface TenantProviderProps {
   children: ReactNode;
@@ -27,7 +26,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
       tenant,
       setTenant,
     }),
-    [tenant]
+    [tenant, setTenant]
   );
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

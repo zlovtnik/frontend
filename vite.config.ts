@@ -41,7 +41,7 @@ export default defineConfig({
       name: 'ensure-dist-dir',
       apply: 'build',
       enforce: 'pre',
-      async generateBundle() {
+      async buildStart() {
         const distDir = path.resolve(__dirname, 'dist');
         if (!fs.existsSync(distDir)) {
           fs.mkdirSync(distDir, { recursive: true });
@@ -88,18 +88,23 @@ export default defineConfig({
             return 'react-vendor';
           }
 
-          // Ant Design - split into smaller chunks
+          // Ant Design - split into smaller chunks using robust regex patterns
+          // Matches both 'es/' and 'lib/' module layouts for compatibility
           if (id.includes('antd')) {
             if (id.includes('@ant-design/icons')) {
               return 'antd-icons';
             }
-            // Split antd components by category
-            if (id.includes('es/form') || id.includes('es/input') || id.includes('es/button')) {
+            
+            // Form-related components: form, input, button, checkbox, radio, select, etc.
+            if (/(es|lib)\/(forms?|input|button|checkbox|radio|select|switch|slider|rate|time-picker|date-picker|cascader|tree-select)/i.test(id)) {
               return 'antd-forms';
             }
-            if (id.includes('es/table') || id.includes('es/list') || id.includes('es/card')) {
+            
+            // Display/data components: table, list, card, pagination, tree, etc.
+            if (/(es|lib)\/(table|list|card|pagination|tree|timeline|steps|statistic|descriptions|empty|result|skeleton)/i.test(id)) {
               return 'antd-display';
             }
+            
             return 'antd-core';
           }
 

@@ -629,7 +629,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     [
       user,
       tenant,
-      isAuthenticated,
       isLoading,
       login,
       logout,

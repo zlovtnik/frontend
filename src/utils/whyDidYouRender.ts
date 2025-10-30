@@ -13,23 +13,22 @@
  * Alternative: Use React DevTools Profiler for performance analysis
  */
 
+import React from 'react';
+
 if (import.meta.env.DEV) {
   // Attempt to load why-did-you-render if available
   // This is optional and won't break if the package isn't installed
   (async () => {
     try {
-      // Dynamic import to avoid bundling in production
-      const [whyDidYouRenderModule, React] = await Promise.all([
-        import('why-did-you-render'),
-        import('react'),
-      ]);
+      // Dynamically import only why-did-you-render to avoid bundling in production
+      // React is statically imported to ensure why-did-you-render patches the same instance
+      const whyDidYouRenderModule = await import('why-did-you-render');
 
       // Extract default export if present
       const whyDidYouRender = whyDidYouRenderModule?.default || whyDidYouRenderModule;
-      const ReactModule = React?.default || React;
 
       if (whyDidYouRender && typeof whyDidYouRender === 'function') {
-        whyDidYouRender(ReactModule, {
+        whyDidYouRender(React, {
           trackAllPureComponents: false,
           trackHooks: {
             useContext: true,
@@ -40,7 +39,9 @@ if (import.meta.env.DEV) {
           },
           trackExtraHooks: [
             // Add custom hooks here if needed
-            // (await import('react-redux')).useSelector,
+            // Example (import at the top of the try block):
+            // const ReactRedux = await import('react-redux');
+            // Then add here: [ReactRedux.useSelector]
           ],
           logOwnerReasons: true,
           collapseGroups: true,
@@ -50,27 +51,27 @@ if (import.meta.env.DEV) {
     } catch (error) {
       // why-did-you-render is optional - silently fail if not installed
       // But log other errors to aid debugging
-      if (error instanceof Error) {
-        // Check for module not found errors (expected case)
-        const errorWithCode = error as NodeJS.ErrnoException;
-        if (errorWithCode.code === 'MODULE_NOT_FOUND' || error.message.includes('Cannot find module')) {
+      const errorObj = error as Error & { code?: string };
+      const errorMessage = errorObj?.message || String(error);
+
+      // Check for module not found errors (expected case)
+      if (
+        errorMessage.includes('Cannot find module') ||
+        errorMessage.includes('Failed to fetch dynamically imported module')
+      ) {
+        if (errorObj.code === 'MODULE_NOT_FOUND' || errorMessage.includes('Cannot find module')) {
           // Expected error - why-did-you-render not installed, silently continue
           return;
         }
-        // Log unexpected errors to help developers debug configuration issues
-        if (!import.meta.env.PROD) {
-          // eslint-disable-next-line no-console
-          console.warn('[whyDidYouRender] Failed to initialize:', error.message);
-        }
-      } else {
-        // Handle non-Error objects thrown
-        if (!import.meta.env.PROD) {
-          // eslint-disable-next-line no-console
-          console.warn('[whyDidYouRender] Failed to initialize with unexpected error:', error);
-        }
       }
+
+      // Log unexpected errors to help developers debug configuration issues
+      // eslint-disable-next-line no-console
+      console.warn('[whyDidYouRender] Failed to initialize:', errorMessage);
     }
   })();
 }
 
+// Export empty object to allow consistent import syntax (import('./utils/whyDidYouRender'))
+// This is a side-effect-only module; the export enables proper module resolution
 export default {};

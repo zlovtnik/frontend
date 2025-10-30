@@ -136,6 +136,45 @@ export const normalizeContactAddress = (
   };
 };
 
+/**
+ * ActionButtons Component - Memoized action buttons for contact table
+ * Accepts handlers as props to avoid closing over local scope
+ */
+interface ActionButtonsProps {
+  contact: Contact;
+  isLoading: boolean;
+  onEdit: (contact: Contact) => void;
+  onDelete: (id: Contact['id']) => void;
+}
+
+const ActionButtons = memo<ActionButtonsProps>(({ contact, isLoading, onEdit, onDelete }) => (
+  <Space size="middle">
+    <Button
+      type="link"
+      icon={<EditOutlined />}
+      data-testid={`edit-${contact.id}`}
+      onClick={() => {
+        onEdit(contact);
+      }}
+    >
+      Edit
+    </Button>
+    <Button
+      type="link"
+      danger
+      icon={<DeleteOutlined />}
+      onClick={() => {
+        onDelete(contact.id);
+      }}
+      disabled={isLoading}
+    >
+      Delete
+    </Button>
+  </Space>
+));
+
+ActionButtons.displayName = 'ActionButtons';
+
 export const AddressBookPage: React.FC = () => {
   const { tenant } = useAuth();
   const { message } = AntdApp.useApp();
@@ -676,35 +715,6 @@ export const AddressBookPage: React.FC = () => {
     return parts.length > 0 ? parts.join(', ') : '-';
   }, []);
 
-  // Memoize action buttons component
-  const ActionButtons = memo(({ contact, isLoading }: { contact: Contact; isLoading: boolean }) => (
-    <Space size="middle">
-      <Button
-        type="link"
-        icon={<EditOutlined />}
-        data-testid={`edit-${contact.id}`}
-        onClick={() => {
-          handleEdit(contact);
-        }}
-      >
-        Edit
-      </Button>
-      <Button
-        type="link"
-        danger
-        icon={<DeleteOutlined />}
-        onClick={() => {
-          handleDelete(contact.id);
-        }}
-        disabled={isLoading}
-      >
-        Delete
-      </Button>
-    </Space>
-  ));
-
-  ActionButtons.displayName = 'ActionButtons';
-
   // Table columns for contacts display - memoized
   const columns = useMemo(
     () => [
@@ -712,7 +722,7 @@ export const AddressBookPage: React.FC = () => {
         title: 'Name',
         dataIndex: 'fullName',
         key: 'fullName',
-        sorter: (a: Contact, b: Contact) => a.fullName.localeCompare(b.fullName),
+        sorter: true,
       },
       {
         title: 'Email',
@@ -734,11 +744,11 @@ export const AddressBookPage: React.FC = () => {
         title: 'Actions',
         key: 'actions',
         render: (_: unknown, contact: Contact) => (
-          <ActionButtons contact={contact} isLoading={loading} />
+          <ActionButtons contact={contact} isLoading={loading} onEdit={handleEdit} onDelete={handleDelete} />
         ),
       },
     ],
-    [renderAddress, loading]
+    [renderAddress, loading, handleEdit, handleDelete]
   );
 
   return (
