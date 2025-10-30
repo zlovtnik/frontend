@@ -14,10 +14,10 @@ import {
 import { logger } from '@/utils/logger';
 
 interface PasswordListResponse {
-  version: string;
-  description: string;
-  lastUpdated: string;
-  source: string;
+  version?: string;
+  description?: string;
+  lastUpdated?: string;
+  source?: string;
   passwords: string[];
 }
 
@@ -190,12 +190,13 @@ export class CommonPasswordsLoader {
       const passwordList = this.validateAndNormalizeResponse(response);
 
       // Cache the result
+      const version = response?.version;
       this.cachedList = {
         passwords: Object.freeze(passwordList),
         loadedAt: Date.now(),
         expiresAt: Date.now() + this.config.cacheTtlMs,
         source: this.config.filePath,
-        version: response?.version,
+        version,
       };
 
       logger.info(
