@@ -195,7 +195,7 @@ export class CommonPasswordsLoader {
         loadedAt: Date.now(),
         expiresAt: Date.now() + this.config.cacheTtlMs,
         source: this.config.filePath,
-        version: response.version,
+        version: response?.version,
       };
 
       logger.info(
