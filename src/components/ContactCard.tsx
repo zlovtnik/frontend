@@ -31,7 +31,9 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
           key="edit"
           type="text"
           icon={<EditOutlined />}
-          onClick={() => onEdit(contact)}
+          onClick={() => {
+            onEdit(contact);
+          }}
           disabled={isLoading}
         >
           Edit
@@ -41,7 +43,9 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
           type="text"
           danger
           icon={<DeleteOutlined />}
-          onClick={() => onDelete(contact.id)}
+          onClick={() => {
+            onDelete(contact.id);
+          }}
           disabled={isLoading}
         >
           Delete

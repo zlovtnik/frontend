@@ -153,7 +153,9 @@ const ActionButtons = memo<ActionButtonsProps>(({ contact, isLoading, onEdit, on
       type="link"
       icon={<EditOutlined />}
       data-testid={`edit-${contact.id}`}
-      onClick={() => onEdit(contact)}
+      onClick={() => {
+        onEdit(contact);
+      }}
       disabled={isLoading}
     >
       Edit
@@ -162,7 +164,9 @@ const ActionButtons = memo<ActionButtonsProps>(({ contact, isLoading, onEdit, on
       type="link"
       danger
       icon={<DeleteOutlined />}
-      onClick={() => onDelete(contact.id)}
+      onClick={() => {
+        onDelete(contact.id);
+      }}
       disabled={isLoading}
     >
       Delete
@@ -741,7 +745,12 @@ export const AddressBookPage: React.FC = () => {
         title: 'Actions',
         key: 'actions',
         render: (_: unknown, contact: Contact) => (
-          <ActionButtons contact={contact} isLoading={loading} onEdit={handleEdit} onDelete={handleDelete} />
+          <ActionButtons
+            contact={contact}
+            isLoading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ),
       },
     ],

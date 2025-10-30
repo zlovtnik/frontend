@@ -30,7 +30,9 @@ describe('Performance Optimizations', () => {
   });
 
   describe('useMemo Hook', () => {
-    afterEach(() => cleanup());
+    afterEach(() => {
+      cleanup();
+    });
 
     it('should memoize expensive calculations and not recalculate with stable dependencies', () => {
       let callCount = 0;
@@ -84,7 +86,9 @@ describe('Performance Optimizations', () => {
   });
 
   describe('useCallback Hook', () => {
-    afterEach(() => cleanup());
+    afterEach(() => {
+      cleanup();
+    });
 
     it('should preserve callback identity with stable dependencies', () => {
       let callbackRef: ((x: number) => number) | null = null;
@@ -109,7 +113,7 @@ describe('Performance Optimizations', () => {
 
     it('should update callback when dependencies change', () => {
       let callbackRef: ((x: number) => number) | null = null;
-      const callbackRefs: Array<(x: number) => number> = [];
+      const callbackRefs: ((x: number) => number)[] = [];
 
       const TestComponent = ({ multiplier }: { multiplier: number }) => {
         const memoizedCallback = useCallback((x: number) => x * multiplier, [multiplier]);
@@ -181,7 +185,9 @@ describe('Performance Optimizations', () => {
   });
 
   describe('Performance Metrics', () => {
-    afterEach(() => cleanup());
+    afterEach(() => {
+      cleanup();
+    });
 
     it('should track render count with React DevTools', () => {
       // This would be verified using React DevTools Profiler

@@ -218,7 +218,9 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         controller = new AbortController();
         connectionTestAbortControllerRef.current = controller;
         // controller is guaranteed to be assigned before this callback executes
-        timeoutId = window.setTimeout(() => controller!.abort(), CONNECTION_TEST_TIMEOUT_MS);
+        timeoutId = window.setTimeout(() => {
+          controller!.abort();
+        }, CONNECTION_TEST_TIMEOUT_MS);
         connectionTestTimeoutRef.current = timeoutId;
 
         const response = await fetch(`${baseUrl}/tenant/test-connection`, {

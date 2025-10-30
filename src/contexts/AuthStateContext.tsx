@@ -73,7 +73,8 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({
     async (credentials: LoginCredentials) => {
       setIsLoading(true);
       try {
-        return await login(credentials);
+        await login(credentials);
+        return;
       } finally {
         setIsLoading(false);
       }
@@ -81,35 +82,32 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({
     [login]
   );
 
-  const memoizedLogout = useCallback(
-    async () => {
-      setIsLoading(true);
-      try {
-        return await logout();
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [logout]
-  );
+  const memoizedLogout = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await logout();
+      return;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [logout]);
 
-  const memoizedRefreshToken = useCallback(
-    async () => {
-      setIsLoading(true);
-      try {
-        return await refreshToken();
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [refreshToken]
-  );
+  const memoizedRefreshToken = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await refreshToken();
+      return;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [refreshToken]);
 
   const memoizedRegister = useCallback(
     async (data: RegisterData) => {
       setIsLoading(true);
       try {
-        return await register(data);
+        await register(data);
+        return;
       } finally {
         setIsLoading(false);
       }

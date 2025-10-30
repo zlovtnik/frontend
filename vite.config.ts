@@ -52,6 +52,12 @@ try {
 }
 
 export default defineConfig({
+    define: {
+      // Provide fallbacks for potentially undefined globals
+      global: 'globalThis',
+      'process.env': {},
+      'process.version': '"unknown"',
+    },
     plugins: [
       {
         name: 'ensure-dist-dir',
