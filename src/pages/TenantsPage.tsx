@@ -15,7 +15,7 @@ import {
   Typography,
   Divider,
   Select,
-  App,
+  AntdApp,
   DatePicker,
   Spin,
   Statistic,
@@ -53,7 +53,7 @@ const operatorLabels: Record<string, string> = {
 
 export const TenantsPage: React.FC = () => {
   const [tenants, setTenants] = useState<TenantRecord[]>([]);
-  const { message } = App.useApp();
+  const { message } = AntdApp.useApp();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<TenantRecord | null>(null);

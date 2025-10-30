@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '../types/auth';
-import { asUserId } from '../types/ids';
 
 /**
  * UserContext - Separated from AuthContext for better performance
@@ -23,10 +22,13 @@ interface UserProviderProps {
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  const value: UserContextType = {
-    user,
-    setUser,
-  };
+  const value: UserContextType = useMemo(
+    () => ({
+      user,
+      setUser,
+    }),
+    [user]
+  );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

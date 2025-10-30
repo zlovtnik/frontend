@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ConfigProvider, App as AntdApp } from '@/components/AntdComponents';
+import { ConfigProvider, AntdApp } from '@/components/AntdComponents';
 import { App } from './App';
 import { preloadCommonPasswords } from './domain/rules/authRules';
 import './styles/index.css';

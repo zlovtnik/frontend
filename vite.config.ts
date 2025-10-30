@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteImagemin from 'vite-plugin-imagemin';
+import fs from 'fs';
 
 // Import cache strategies
 import { staticAssetCache, resourceCache, htmlCache } from './src/config/cacheStrategies';
@@ -36,6 +37,17 @@ const pwaOptions = {
 
 export default defineConfig({
   plugins: [
+    {
+      name: 'ensure-dist-dir',
+      apply: 'build',
+      enforce: 'pre',
+      async generateBundle() {
+        const distDir = path.resolve(__dirname, 'dist');
+        if (!fs.existsSync(distDir)) {
+          fs.mkdirSync(distDir, { recursive: true });
+        }
+      },
+    },
     react(),
     VitePWA(pwaOptions),
     viteImagemin({

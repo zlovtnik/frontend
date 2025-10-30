@@ -35,6 +35,8 @@ export {
   Avatar,
   Tag,
   Skeleton,
+  ConfigProvider,
+  App as AntdApp,
 } from 'antd';
 
 // Icons - import only what we use
@@ -61,6 +63,3 @@ export {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
-
-// Re-export ConfigProvider and App as AntdApp for main.tsx
-export { ConfigProvider, App as AntdApp } from 'antd';

@@ -1,6 +1,8 @@
 import React from 'react';
 import { LazyImage } from './LazyImage';
 
+const DEFAULT_WIDTHS = [320, 640, 768, 1024, 1280, 1536];
+
 interface ResponsiveImageProps {
   src: string;
   alt: string;
@@ -19,7 +21,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
   src,
   alt,
   className,
-  widths = [320, 640, 768, 1024, 1280, 1536],
+  widths = DEFAULT_WIDTHS,
   sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
   format = 'webp',
   fallback,
@@ -34,15 +36,14 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
       const [pathname = '', ...queryParts] = baseSrc.split('?');
       const queryString = queryParts.join('?'); // Rejoin in case there were multiple '?'
 
-      // Parse existing query string into URLSearchParams
-      const params = new URLSearchParams(queryString);
-
       // Compute modifiedPath once based on formatType
       const modifiedPath =
         formatType === 'original' ? pathname : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
 
       return widths
         .map(w => {
+          // Create fresh URLSearchParams per iteration to avoid shared mutable state
+          const params = new URLSearchParams(queryString);
           // Set/overwrite the width parameter
           params.set('w', String(w));
 

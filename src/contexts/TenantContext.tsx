@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { Tenant } from '../types/auth';
-import { asTenantId } from '../types/ids';
 
 /**
  * TenantContext - Separated from AuthContext for better performance
@@ -23,10 +22,13 @@ interface TenantProviderProps {
 export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
 
-  const value: TenantContextType = {
-    tenant,
-    setTenant,
-  };
+  const value: TenantContextType = useMemo(
+    () => ({
+      tenant,
+      setTenant,
+    }),
+    [tenant]
+  );
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
 };

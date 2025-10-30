@@ -583,8 +583,8 @@ export const AddressBookPage: React.FC = () => {
     setOperationError(null); // Clear operation error on success
   };
 
-  // Handle edit
-  const handleEdit = (contact: Contact) => {
+  // Handle edit - memoized to maintain stable reference for ActionButtons
+  const handleEdit = useCallback((contact: Contact) => {
     setEditingContact(contact);
     setFormError(null);
     setContactFormInitialValues({
@@ -603,12 +603,12 @@ export const AddressBookPage: React.FC = () => {
       country: contact.address?.country ?? DEFAULT_COUNTRY,
     });
     setIsFormOpen(true);
-  };
+  }, []);
 
-  // Handle delete - open confirmation modal
-  const handleDelete = (id: Contact['id']) => {
+  // Handle delete - open confirmation modal - memoized to maintain stable reference for ActionButtons
+  const handleDelete = useCallback((id: Contact['id']) => {
     setDeleteContactId(id);
-  };
+  }, []);
 
   // Confirm delete
   const confirmDelete = async () => {

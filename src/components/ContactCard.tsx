@@ -97,12 +97,19 @@ const ContactCardComponent: React.FC<ContactCardProps> = ({
  * - Contact ID changes
  * - Contact updatedAt timestamp changes
  * - Loading state changes
+ * - Handler references change (onEdit, onDelete)
+ *
+ * **Important:** Callers must pass stable memoized handlers (useCallback) for onEdit and onDelete
+ * to avoid unnecessary re-renders. If handlers are recreated on each render, this component
+ * will re-render even if contact data hasn't changed.
  */
 export const ContactCard = memo(ContactCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.contact.id === nextProps.contact.id &&
     prevProps.contact.updatedAt === nextProps.contact.updatedAt &&
-    prevProps.isLoading === nextProps.isLoading
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.onEdit === nextProps.onEdit &&
+    prevProps.onDelete === nextProps.onDelete
   );
 });
 

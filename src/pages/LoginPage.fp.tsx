@@ -14,6 +14,7 @@ import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import type { LoginCredentials } from '@/types/auth';
 import type { AuthFlowError } from '@/types/errors';
+import { formatAuthFlowError } from '@/types/errors';
 import type { TenantId } from '@/types/ids';
 import {
   Card,
@@ -59,30 +60,6 @@ const isCredentialValidationError = (error: unknown): error is CredentialValidat
 
   const candidate = error as { type?: unknown };
   return typeof candidate.type === 'string' && candidate.type in credentialFieldMap;
-};
-
-const formatAuthFlowError = (error: AuthFlowError): string => {
-  switch (error.type) {
-    case 'INVALID_CREDENTIALS':
-    case 'UNAUTHORIZED':
-    case 'FORBIDDEN':
-    case 'NETWORK_ERROR':
-      return error.message;
-    case 'TOKEN_EXPIRED':
-      return 'Your session has expired. Please sign in again.';
-    case 'TOKEN_REFRESH_FAILED':
-      return `Authentication failed: ${error.reason}`;
-    case 'SERVER_ERROR':
-      return `Server error (${error.statusCode ?? 'unknown'}): ${error.message}`;
-    case 'LOGOUT_FAILED':
-      return `Logout failed: ${error.reason}`;
-    case 'INIT_FAILED':
-      return `Authentication initialization failed: ${error.reason}`;
-    case 'MISSING_TOKEN':
-      return 'Authentication token is missing. Please sign in again.';
-    case 'TENANT_MISMATCH':
-      return `Tenant mismatch. Expected ${error.expected}, received ${error.actual}.`;
-  }
 };
 
 /**

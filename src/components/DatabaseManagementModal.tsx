@@ -119,7 +119,7 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
   const copyConnectionString = useCallback(
     async (connectionString: string) => {
       try {
-        if (connectionString?.trim().length === 0) {
+        if (!connectionString || connectionString.trim().length === 0) {
           message.warning('No connection string to copy');
           return;
         }

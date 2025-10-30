@@ -64,7 +64,6 @@ const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
     ];
 
     if (typeof candidate.type === 'string' && validTypes.includes(candidate.type)) {
-      // Validate required fields per discriminant
       if (candidate.type === 'SERVER_ERROR') {
         // SERVER_ERROR requires both statusCode and message
         if (typeof candidate.statusCode === 'number' && typeof candidate.message === 'string') {
@@ -73,8 +72,32 @@ const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
       } else if (candidate.type === 'TOKEN_EXPIRED' || candidate.type === 'MISSING_TOKEN') {
         // These discriminants intentionally have no extra fields
         return thrown as AuthFlowError;
+      } else if (
+        candidate.type === 'TOKEN_REFRESH_FAILED' ||
+        candidate.type === 'LOGOUT_FAILED' ||
+        candidate.type === 'INIT_FAILED'
+      ) {
+        // These discriminants require reason
+        if (typeof (candidate as { reason?: unknown }).reason === 'string') {
+          return thrown as AuthFlowError;
+        }
+      } else if (candidate.type === 'TENANT_MISMATCH') {
+        // Requires expected and actual
+        const typed = candidate as { expected?: unknown; actual?: unknown };
+        if (typeof typed.expected === 'string' && typeof typed.actual === 'string') {
+          return thrown as AuthFlowError;
+        }
+      } else if (candidate.type === 'NETWORK_ERROR') {
+        // message is required, statusCode is optional
+        const typed = candidate as { statusCode?: unknown; message?: unknown };
+        if (
+          typeof typed.message === 'string' &&
+          (typed.statusCode === undefined || typeof typed.statusCode === 'number')
+        ) {
+          return thrown as AuthFlowError;
+        }
       } else {
-        // All other discriminants require message
+        // INVALID_CREDENTIALS, UNAUTHORIZED, FORBIDDEN require message
         if (typeof candidate.message === 'string') {
           return thrown as AuthFlowError;
         }

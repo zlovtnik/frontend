@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { LoginCredentials, RegisterData, PasswordResetConfirm } from '../types/auth';
 
@@ -47,16 +47,19 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const value: AuthStateContextType = {
-    isLoading,
-    setIsLoading,
-    login,
-    logout,
-    refreshToken,
-    register,
-    requestPasswordReset,
-    confirmPasswordReset,
-  };
+  const value: AuthStateContextType = useMemo(
+    () => ({
+      isLoading,
+      setIsLoading,
+      login,
+      logout,
+      refreshToken,
+      register,
+      requestPasswordReset,
+      confirmPasswordReset,
+    }),
+    [isLoading, login, logout, refreshToken, register, requestPasswordReset, confirmPasswordReset]
+  );
 
   return <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>;
 };
