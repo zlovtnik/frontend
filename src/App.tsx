@@ -5,6 +5,7 @@ import { PrivateRoute } from './components/PrivateRoute';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { EnvironmentErrorUI } from './components/EnvironmentErrorUI';
+import { PageSkeleton } from './components/PageSkeleton';
 import { getEnv, EnvironmentError } from './config/env';
 
 const HomePage = lazy(() =>
@@ -53,7 +54,7 @@ export const App: React.FC = () => {
     <ErrorBoundary>
       <div className="min-h-screen bg-natural-light text-natural-dark">
         <AuthProvider>
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -64,7 +65,9 @@ export const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <DashboardPage />
+                      <Suspense fallback={<PageSkeleton variant="default" />}>
+                        <DashboardPage />
+                      </Suspense>
                     </Layout>
                   </PrivateRoute>
                 }
@@ -74,7 +77,9 @@ export const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <AddressBookPage />
+                      <Suspense fallback={<PageSkeleton variant="card" />}>
+                        <AddressBookPage />
+                      </Suspense>
                     </Layout>
                   </PrivateRoute>
                 }
@@ -84,7 +89,9 @@ export const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <TenantsPage />
+                      <Suspense fallback={<PageSkeleton variant="table" />}>
+                        <TenantsPage />
+                      </Suspense>
                     </Layout>
                   </PrivateRoute>
                 }

@@ -1,15 +1,7 @@
 import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Layout, Typography } from 'antd';
-import { Button, Space, Divider } from 'antd';
-import { Row, Col, Card } from 'antd';
-import {
-  SecurityScanOutlined,
-  HomeOutlined,
-  ThunderboltOutlined,
-  HeartOutlined,
-} from '@ant-design/icons';
+import { Layout, Typography, Button, Space, Divider, Row, Col, Card, SecurityScanOutlined, HomeOutlined, ThunderboltOutlined, HeartOutlined } from '@/components/AntdComponents';
 
 const styles = {
   header: {

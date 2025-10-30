@@ -1,9 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Card, Row, Col, Statistic, Alert, List, Avatar, Space, Button, Tag, Divider } from 'antd';
-import { CardSkeletonGrid } from '@/components/CardSkeletonGrid';
-import { SectionSkeleton } from '@/components/skeletons/SectionSkeleton';
+import { Card, Row, Col, Statistic, Alert, List, Avatar, Space, Button, Tag, Divider } from '@/components/AntdComponents';
 import {
   ContactsOutlined,
   HeartOutlined,
@@ -12,8 +10,15 @@ import {
   DesktopOutlined,
   ApiOutlined,
   CodeOutlined,
+  UserOutlined,
+  LockOutlined,
+  MailOutlined,
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
   ThunderboltOutlined,
-} from '@ant-design/icons';
+} from '@/components/AntdComponents';
+import { CardSkeletonGrid } from '@/components/CardSkeletonGrid';
+import { SectionSkeleton } from '@/components/skeletons/SectionSkeleton';
 
 export const DashboardPage: React.FC = () => {
   const { user, tenant, isLoading } = useAuth();

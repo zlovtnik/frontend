@@ -6,8 +6,8 @@ import { Gender } from '@/types/contact';
 import { normalizePersonDTO, type PersonDTO } from '@/types/person';
 import { addressBookService } from '@/services/api';
 import { getEnv } from '@/config/env';
-import { Button, Input, Card, Table, Alert, Space, Typography, Divider, App, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Input, Card, Table, Alert, Space, Typography, Divider, App, Select } from '@/components/AntdComponents';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@/components/AntdComponents';
 import {
   ContactFormModal,
   type ContactFormValues,

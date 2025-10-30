@@ -288,7 +288,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         connectionTestAbortControllerRef.current = null;
       }
     }
-  }, []);
+  }, [extractConnectionErrorMessage]);
 
   // Comprehensive form validation
   const validateForm = useCallback(

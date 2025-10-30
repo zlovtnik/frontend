@@ -1,0 +1,124 @@
+import React from 'react';
+import { LazyImage } from './LazyImage';
+
+interface ResponsiveImageProps {
+  src: string;
+  alt: string;
+  className?: string;
+  widths?: number[];
+  sizes?: string;
+  format?: ('webp' | 'avif' | 'original')[] | 'webp' | 'avif' | 'original';
+  fallback?: string;
+  width?: number | string;
+  height?: number | string;
+  onLoad?: () => void;
+  onError?: () => void;
+}
+
+export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
+  src,
+  alt,
+  className,
+  widths = [320, 640, 768, 1024, 1280, 1536],
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
+  format = 'webp',
+  fallback,
+  width,
+  height,
+  onLoad,
+  onError,
+}) => {
+  const generateSrcSet = React.useCallback(
+    (baseSrc: string, formatType: string) => {
+      // Split baseSrc at the first '?' to separate pathname and query
+      const splitResult = baseSrc.split('?');
+      const pathname = splitResult[0] ?? '';
+      const queryPart = splitResult.length > 1 ? `?${splitResult.slice(1).join('?')}` : '';
+      
+      return widths
+        .map(w => {
+          const modifiedPath = formatType === 'original'
+            ? pathname
+            : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
+          const formattedSrc = `${modifiedPath}?w=${w}${queryPart}`;
+          return `${formattedSrc} ${w}w`;
+        })
+        .join(', ');
+    },
+    [widths],
+  );
+
+  // Normalize format to array for consistent handling
+  const formatArray = React.useMemo(() => {
+    if (!format) {
+      return ['avif', 'webp', 'original'];
+    }
+    if (Array.isArray(format)) {
+      return format;
+    }
+    // Legacy: single string format
+    return [format];
+  }, [format]);
+
+  // Generate srcSets for each format in priority order
+  const srcSets = React.useMemo(() => {
+    const sets: { format: string; srcSet: string; type?: string }[] = [];
+    
+    formatArray.forEach(fmt => {
+      if (fmt === 'original') {
+        const baseForOriginal = fallback ?? src;
+        sets.push({
+          format: 'original',
+          srcSet: generateSrcSet(baseForOriginal, 'original'),
+        });
+      } else if (fmt === 'webp') {
+        sets.push({
+          format: 'webp',
+          srcSet: generateSrcSet(src, 'webp'),
+          type: 'image/webp',
+        });
+      } else if (fmt === 'avif') {
+        sets.push({
+          format: 'avif',
+          srcSet: generateSrcSet(src, 'avif'),
+          type: 'image/avif',
+        });
+      }
+    });
+    
+    return sets;
+  }, [formatArray, generateSrcSet, fallback, src]);
+
+  return (
+    <picture>
+      {srcSets.map((srcSetItem, idx) => {
+        if (srcSetItem.format === 'original') {
+          return (
+            <source
+              key={`${srcSetItem.format}-${idx}`}
+              srcSet={srcSetItem.srcSet}
+              sizes={sizes}
+            />
+          );
+        }
+        return (
+          <source
+            key={`${srcSetItem.format}-${idx}`}
+            type={srcSetItem.type}
+            srcSet={srcSetItem.srcSet}
+            sizes={sizes}
+          />
+        );
+      })}
+      <LazyImage
+        src={fallback || src}
+        alt={alt}
+        width={width}
+        height={height}
+        onLoad={onLoad}
+        onError={onError}
+        className={className}
+      />
+    </picture>
+  );
+};

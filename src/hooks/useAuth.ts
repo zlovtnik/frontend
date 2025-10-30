@@ -45,13 +45,36 @@ const mapTokenErrorToAuthFlowError = (error: TokenError): AuthFlowError => {
 };
 
 const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
-  if (
-    thrown &&
-    typeof thrown === 'object' &&
-    'type' in thrown &&
-    typeof (thrown as { type?: unknown }).type === 'string'
-  ) {
-    return thrown as AuthFlowError;
+  if (thrown && typeof thrown === 'object' && 'type' in thrown) {
+    const candidate = thrown as { type?: unknown; message?: unknown; statusCode?: unknown };
+    
+    // Verify that type is one of the known AuthFlowError discriminants
+    const validTypes = [
+      'INVALID_CREDENTIALS',
+      'TOKEN_EXPIRED',
+      'TOKEN_REFRESH_FAILED',
+      'NETWORK_ERROR',
+      'UNAUTHORIZED',
+      'FORBIDDEN',
+      'SERVER_ERROR',
+      'LOGOUT_FAILED',
+      'INIT_FAILED',
+      'MISSING_TOKEN',
+      'TENANT_MISMATCH',
+    ];
+    
+    if (
+      typeof candidate.type === 'string' &&
+      validTypes.includes(candidate.type) &&
+      typeof candidate.message === 'string'
+    ) {
+      // Additional validation for types that require statusCode
+      if (candidate.type === 'SERVER_ERROR' && typeof candidate.statusCode === 'number') {
+        return thrown as AuthFlowError;
+      } else if (candidate.type !== 'SERVER_ERROR') {
+        return thrown as AuthFlowError;
+      }
+    }
   }
 
   const message =
@@ -114,7 +137,7 @@ export function useAuth() {
   };
 
   // Wrap imperative context operations in a memoized Result-based API for composability
-  const resultApi = useMemo(() => {
+  const loginApi = useMemo(() => {
     const isNeverthrowResult = (value: unknown): value is Result<unknown, unknown> => {
       if (typeof value !== 'object' || value === null) {
         return false;
@@ -146,7 +169,7 @@ export function useAuth() {
     return {
       login,
     };
-  }, [auth]);
+  }, [auth.login]);
   const requireAuthResult = (): Result<boolean, AuthFlowError> => {
     if (auth.isAuthenticated) {
       return ok(true);
@@ -223,8 +246,8 @@ export function useAuth() {
     isLoading: auth.isLoading,
     error,
     clearError,
-    logout: () => auth.logout(),
-    refreshToken: () => auth.refreshToken(),
+    logout: auth.logout,
+    refreshToken: auth.refreshToken,
     requireAuth: requireAuthResult,
     ensureAuthenticated,
     getUserResult,
@@ -238,6 +261,6 @@ export function useAuth() {
     requireTenantAccess,
 
     // Result-based API (spread last to ensure these override)
-    ...resultApi,
+    ...loginApi,
   };
 }

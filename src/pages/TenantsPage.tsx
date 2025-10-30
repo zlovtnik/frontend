@@ -18,14 +18,12 @@ import {
   App,
   DatePicker,
   Spin,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  PlusCircleOutlined,
-  MinusCircleOutlined,
-} from '@ant-design/icons';
+  Statistic,
+  List,
+  Avatar,
+  Tag,
+} from '@/components/AntdComponents';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@/components/AntdComponents';
 import { tenantService } from '@/services/api';
 import { isValidPostgresConnectionString } from '@/validation/schemas';
 

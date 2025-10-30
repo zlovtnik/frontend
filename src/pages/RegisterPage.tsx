@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { RegisterData } from '@/types/auth';
-import { Card, Form, Button, Typography, Alert, Flex, Input } from 'antd';
+import { Card, Form, Button, Typography, Alert, Flex, Input } from '@/components/AntdComponents';
 
 interface RegisterFormValues {
   firstName: string;
