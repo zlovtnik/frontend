@@ -34,7 +34,7 @@ export {
   List,
   Avatar,
   Tag,
-  Skeleton,
+-  Skeleton,
 } from 'antd';
 
 // Icons - import only what we use

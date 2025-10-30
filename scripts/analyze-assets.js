@@ -2,7 +2,7 @@
 
 // Performance monitoring script for asset optimization
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 
 /**
  * Analyzes assets in a directory and returns size information
@@ -29,11 +29,15 @@ const analyzeAssets = (distPath) => {
         walkDir(assetPath);
       } else if (stats.isFile()) {
         const size = stats.size;
+        // Compute relative path from distPath for unique identification
+        const relativePath = relative(distPath, assetPath);
+        // Normalize separators to forward slashes for cross-platform consistency
+        const normalizedPath = relativePath.replace(/\\/g, '/');
         const type = entry.split('.').pop() || 'unknown';
 
         analysis.totalSize += size;
         analysis.assets.push({
-          name: entry,
+          name: normalizedPath,
           size,
           type,
         });
@@ -78,9 +82,7 @@ const checkPerformanceThresholds = (analysis) => {
 };
 
 // Run analysis if script is executed directly
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
-
-if (isMainModule) {
+if (import.meta.main) {
   const distPath = join(process.cwd(), 'dist');
 
   try {

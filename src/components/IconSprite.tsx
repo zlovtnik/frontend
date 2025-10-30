@@ -37,7 +37,6 @@ export const IconSprite: React.FC<IconSpriteProps> = ({
       className={className}
       fill={fill}
       role={ariaLabel ? 'img' : undefined}
-      aria-label={ariaLabel}
       aria-labelledby={ariaLabel ? titleId : undefined}
       aria-hidden={!ariaLabel}
       focusable={ariaLabel ? undefined : 'false'}

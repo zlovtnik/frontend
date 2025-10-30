@@ -266,6 +266,10 @@ export function useAuth() {
     requireTenantAccess,
 
     // Result-based API (spread last to ensure these override)
+    // Note: login is wrapped with error mapping to return Result<void, AuthFlowError | CredentialValidationError>,
+    // while logout and refreshToken are bound directly from the context. This asymmetry exists because login
+    // is the primary user-facing operation that needs consistent error handling, whereas logout and refreshToken
+    // are typically fire-and-forget or already handle their own errors internally.
     ...loginApi,
   };
 }

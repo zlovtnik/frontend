@@ -37,14 +37,15 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
       // Parse existing query string into URLSearchParams
       const params = new URLSearchParams(queryString);
       
+      // Compute modifiedPath once based on formatType
+      const modifiedPath = formatType === 'original'
+        ? pathname
+        : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
+      
       return widths
         .map(w => {
           // Set/overwrite the width parameter
           params.set('w', String(w));
-          
-          const modifiedPath = formatType === 'original'
-            ? pathname
-            : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
           
           // Build URL with merged query string
           const formattedSrc = `${modifiedPath}?${params.toString()}`;

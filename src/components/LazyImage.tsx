@@ -46,6 +46,9 @@ const createObserverManager = () => {
 
 const observerManager = createObserverManager();
 
+// Transparent 1×1 GIF data URL for placeholder
+const PLACEHOLDER_DATA_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
 interface LazyImageProps {
   src: string;
   alt: string;
@@ -71,18 +74,32 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+  const observedElementRef = useRef<HTMLImageElement | null>(null);
 
+  // Effect to observe/unobserve when the image element changes or error state changes
   useEffect(() => {
-    if (imgRef.current) {
-      observerManager.observe(imgRef.current, () => setIsInView(true));
+    const el = imgRef.current;
+    
+    // Unobserve the old element if it changed
+    if (observedElementRef.current && observedElementRef.current !== el) {
+      observerManager.unobserve(observedElementRef.current);
+    }
+    
+    // Observe the new element if it exists and no error
+    if (el && !hasError) {
+      observerManager.observe(el, () => setIsInView(true));
+      observedElementRef.current = el;
+    } else {
+      observedElementRef.current = null;
     }
 
     return () => {
-      if (imgRef.current) {
-        observerManager.unobserve(imgRef.current);
+      if (observedElementRef.current) {
+        observerManager.unobserve(observedElementRef.current);
+        observedElementRef.current = null;
       }
     };
-  }, []);
+  }, [hasError]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -108,16 +125,18 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         />
       )}
 
-      <img
-        ref={imgRef}
-        src={isInView ? src : undefined}
-        alt={alt}
-        className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-        style={{ width, height }}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+      {!hasError && (
+        <img
+          ref={imgRef}
+          src={isInView ? src : PLACEHOLDER_DATA_URL}
+          alt={alt}
+          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+          style={{ width, height }}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
 
       {hasError && (
         <div 
