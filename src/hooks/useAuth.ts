@@ -63,16 +63,21 @@ const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
       'TENANT_MISMATCH',
     ];
     
-    if (
-      typeof candidate.type === 'string' &&
-      validTypes.includes(candidate.type) &&
-      typeof candidate.message === 'string'
-    ) {
-      // Additional validation for types that require statusCode
-      if (candidate.type === 'SERVER_ERROR' && typeof candidate.statusCode === 'number') {
+    if (typeof candidate.type === 'string' && validTypes.includes(candidate.type)) {
+      // Validate required fields per discriminant
+      if (candidate.type === 'SERVER_ERROR') {
+        // SERVER_ERROR requires both statusCode and message
+        if (typeof candidate.statusCode === 'number' && typeof candidate.message === 'string') {
+          return thrown as AuthFlowError;
+        }
+      } else if (candidate.type === 'TOKEN_EXPIRED' || candidate.type === 'MISSING_TOKEN') {
+        // These discriminants intentionally have no extra fields
         return thrown as AuthFlowError;
-      } else if (candidate.type !== 'SERVER_ERROR') {
-        return thrown as AuthFlowError;
+      } else {
+        // All other discriminants require message
+        if (typeof candidate.message === 'string') {
+          return thrown as AuthFlowError;
+        }
       }
     }
   }

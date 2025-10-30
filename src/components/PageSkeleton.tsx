@@ -1,5 +1,5 @@
 import React from 'react';
-import { Skeleton } from 'antd';
+import { Skeleton } from '@/components/AntdComponents';
 
 interface PageSkeletonProps {
   /** Type of skeleton to render */

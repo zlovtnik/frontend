@@ -4,17 +4,22 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-const analyzeAssets = (distPath: string) => {
+/**
+ * Analyzes assets in a directory and returns size information
+ * @param {string} distPath - Path to the distribution directory
+ * @returns {Object} Analysis object with totalSize and assets array
+ */
+const analyzeAssets = (distPath) => {
   const analysis = {
     totalSize: 0,
-    assets: [] as Array<{
-      name: string;
-      size: number;
-      type: string;
-    }>,
+    assets: [],
   };
 
-  const walkDir = (dir: string) => {
+  /**
+   * Recursively walks through directory structure
+   * @param {string} dir - Directory to walk
+   */
+  const walkDir = (dir) => {
     const entries = readdirSync(dir);
     entries.forEach(entry => {
       const assetPath = join(dir, entry);
@@ -41,14 +46,19 @@ const analyzeAssets = (distPath: string) => {
   return analysis;
 };
 
-const checkPerformanceThresholds = (analysis: ReturnType<typeof analyzeAssets>) => {
+/**
+ * Checks asset sizes against performance thresholds
+ * @param {Object} analysis - Analysis object from analyzeAssets
+ * @returns {Array<string>} Array of warning messages
+ */
+const checkPerformanceThresholds = (analysis) => {
   const thresholds = {
     maxTotalSize: 1024 * 1024, // 1MB
     maxAssetSize: 512 * 1024,  // 512KB
     maxImageSize: 256 * 1024,  // 256KB for images
   };
 
-  const warnings: string[] = [];
+  const warnings = [];
 
   if (analysis.totalSize > thresholds.maxTotalSize) {
     warnings.push(`Total bundle size ${(analysis.totalSize / 1024 / 1024).toFixed(2)}MB exceeds threshold of ${(thresholds.maxTotalSize / 1024 / 1024).toFixed(2)}MB`);
@@ -68,7 +78,9 @@ const checkPerformanceThresholds = (analysis: ReturnType<typeof analyzeAssets>) 
 };
 
 // Run analysis if script is executed directly
-if (import.meta.main) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+
+if (isMainModule) {
   const distPath = join(process.cwd(), 'dist');
 
   try {

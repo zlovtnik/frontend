@@ -27,7 +27,8 @@ export const IconSprite: React.FC<IconSpriteProps> = ({
   fill = 'currentColor',
   ariaLabel,
 }) => {
-  const titleId = ariaLabel ? `icon-title-${name}` : undefined;
+  const uid = React.useId();
+  const titleId = ariaLabel ? `icon-title-${name}-${uid}` : undefined;
 
   return (
     <svg

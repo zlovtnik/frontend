@@ -31,16 +31,23 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
   const generateSrcSet = React.useCallback(
     (baseSrc: string, formatType: string) => {
       // Split baseSrc at the first '?' to separate pathname and query
-      const splitResult = baseSrc.split('?');
-      const pathname = splitResult[0] ?? '';
-      const queryPart = splitResult.length > 1 ? `?${splitResult.slice(1).join('?')}` : '';
+      const [pathname = '', ...queryParts] = baseSrc.split('?');
+      const queryString = queryParts.join('?'); // Rejoin in case there were multiple '?'
+      
+      // Parse existing query string into URLSearchParams
+      const params = new URLSearchParams(queryString);
       
       return widths
         .map(w => {
+          // Set/overwrite the width parameter
+          params.set('w', String(w));
+          
           const modifiedPath = formatType === 'original'
             ? pathname
             : `${pathname.replace(/\.[^/.]+$/, '')}.${formatType}`;
-          const formattedSrc = `${modifiedPath}?w=${w}${queryPart}`;
+          
+          // Build URL with merged query string
+          const formattedSrc = `${modifiedPath}?${params.toString()}`;
           return `${formattedSrc} ${w}w`;
         })
         .join(', ');
