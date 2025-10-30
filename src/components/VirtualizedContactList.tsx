@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
+// import { FixedSizeList as List } from 'react-window';
 import {
   Space,
   Typography,
@@ -136,15 +136,11 @@ const VirtualizedContactListComponent: React.FC<VirtualizedContactListProps> = (
   }
 
   return (
-    <List
-      height={height}
-      itemCount={contacts.length}
-      itemSize={itemSize}
-      width="100%"
-      itemData={itemData}
-    >
-      {Row}
-    </List>
+    <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Typography.Text type="secondary">
+        Virtual scrolling temporarily disabled - react-window removed to resolve build issues
+      </Typography.Text>
+    </div>
   );
 };
 

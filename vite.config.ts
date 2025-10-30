@@ -56,7 +56,12 @@ export default defineConfig({
       // Provide fallbacks for potentially undefined globals
       global: 'globalThis',
       'process.env': {},
-      'process.version': '"unknown"',
+      'process.version': '"1.0.0"',
+      'process.versions': '{}',
+      'process.platform': '"browser"',
+      'global.process': 'globalThis',
+      'global.Buffer': 'undefined',
+      'Buffer': 'undefined',
     },
     plugins: [
       {
