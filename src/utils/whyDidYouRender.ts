@@ -13,22 +13,20 @@
  * Alternative: Use React DevTools Profiler for performance analysis
  */
 
-import React from 'react';
-
+// Only load in development - this entire block is tree-shaken in production
 if (import.meta.env.DEV) {
-  // Attempt to load why-did-you-render if available
-  // This is optional and won't break if the package isn't installed
+  // Use a dynamic import wrapped in an IIFE to ensure this code is only executed in dev
   (async () => {
     try {
-      // Dynamically import only why-did-you-render to avoid bundling in production
-      // React is statically imported to ensure why-did-you-render patches the same instance
+      // Dynamically import React and why-did-you-render
+      const React = await import('react');
       const whyDidYouRenderModule = await import('why-did-you-render');
 
       // Extract default export if present
       const whyDidYouRender = whyDidYouRenderModule?.default || whyDidYouRenderModule;
 
       if (whyDidYouRender && typeof whyDidYouRender === 'function') {
-        whyDidYouRender(React, {
+        whyDidYouRender(React.default, {
           trackAllPureComponents: false,
           trackHooks: {
             useContext: true,
