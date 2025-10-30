@@ -80,7 +80,6 @@ export default defineConfig({
     assetsInlineLimit: 4096, // inline assets < 4kb
     cssCodeSplit: true,
     rollupOptions: {
-      external: ['why-did-you-render'], // Exclude from production build
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',
         manualChunks: (id) => {
