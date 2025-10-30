@@ -2,12 +2,21 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import { visualizer } from 'rollup-plugin-visualizer';
 import viteImagemin from 'vite-plugin-imagemin';
 import fs from 'fs';
 
 // Import cache strategies
 import { staticAssetCache, resourceCache, htmlCache } from './src/config/cacheStrategies';
+
+// Conditionally load visualizer plugin - it's optional and only used for bundle analysis
+let visualizer: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+  const visualizerModule = require('rollup-plugin-visualizer');
+  visualizer = visualizerModule.visualizer;
+} catch {
+  // visualizer is optional - silently continue if not available
+}
 
 const pwaOptions = {
   registerType: 'autoUpdate' as const,
@@ -61,12 +70,12 @@ export default defineConfig({
         ],
       },
     }),
-    visualizer({
+    ...(visualizer ? [visualizer({
       filename: 'dist/stats.html',
       open: false,
       gzipSize: true,
       brotliSize: true,
-    })
+    })] : [])
   ],
   css: {
     postcss: './postcss.config.js',
