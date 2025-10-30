@@ -58,13 +58,9 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
 
   // Normalize format to array for consistent handling
   const formatArray = React.useMemo(() => {
-    if (!format) {
-      return ['avif', 'webp', 'original'];
-    }
     if (Array.isArray(format)) {
       return format;
     }
-    // Legacy: single string format
     return [format];
   }, [format]);
 

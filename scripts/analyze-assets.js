@@ -3,6 +3,7 @@
 // Performance monitoring script for asset optimization
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Analyzes assets in a directory and returns size information
@@ -82,7 +83,9 @@ const checkPerformanceThresholds = (analysis) => {
 };
 
 // Run analysis if script is executed directly
-if (import.meta.main) {
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMainModule) {
   const distPath = join(process.cwd(), 'dist');
 
   try {
