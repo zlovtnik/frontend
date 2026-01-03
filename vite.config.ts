@@ -61,6 +61,7 @@ export default defineConfig({
     VitePWA(pwaOptions),
     viteImagemin({
       mozjpeg: { quality: 80 },
+      jpegtran: false, // Disable jpegtran due to Node.js 22+ compatibility issues
       pngquant: { quality: [0.65, 0.8] },
       webp: { quality: 80 },
       svgo: {
