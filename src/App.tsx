@@ -14,6 +14,9 @@ const HomePage = lazy(() =>
 const LoginPage = lazy(() =>
   import('./pages/LoginPage.fp').then(module => ({ default: module.LoginPageFP }))
 );
+const OAuthCallbackPage = lazy(() =>
+  import('./pages/OAuthCallbackPage').then(module => ({ default: module.OAuthCallbackPage }))
+);
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage }))
 );
@@ -58,6 +61,7 @@ export const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/callback" element={<OAuthCallbackPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<PasswordResetPage />} />
               <Route
