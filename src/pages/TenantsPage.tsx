@@ -15,17 +15,21 @@ import {
   Typography,
   Divider,
   Select,
-  App,
+  AntdApp,
   DatePicker,
   Spin,
-} from 'antd';
+  Statistic,
+  List,
+  Avatar,
+  Tag,
+} from '@/components/AntdComponents';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   PlusCircleOutlined,
   MinusCircleOutlined,
-} from '@ant-design/icons';
+} from '@/components/AntdComponents';
 import { tenantService } from '@/services/api';
 import { isValidPostgresConnectionString } from '@/validation/schemas';
 
@@ -49,7 +53,7 @@ const operatorLabels: Record<string, string> = {
 
 export const TenantsPage: React.FC = () => {
   const [tenants, setTenants] = useState<TenantRecord[]>([]);
-  const { message } = App.useApp();
+  const { message } = AntdApp.useApp();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<TenantRecord | null>(null);

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ConfigProvider, App as AntdApp } from 'antd';
+import { ConfigProvider, AntdApp } from '@/components/AntdComponents';
 import { App } from './App';
 import { preloadCommonPasswords } from './domain/rules/authRules';
 import './styles/index.css';
@@ -72,9 +72,12 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 
 // Preload common passwords for synchronous access
-preloadCommonPasswords().catch((error: unknown) => {
-  console.warn('Failed to preload common passwords:', error);
-});
+// Wrapped in setTimeout to defer execution after app initialization
+setTimeout(() => {
+  preloadCommonPasswords().catch((error: unknown) => {
+    console.warn('Failed to preload common passwords:', error);
+  });
+}, 0);
 
 root.render(
   <React.StrictMode>

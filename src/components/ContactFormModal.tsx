@@ -229,10 +229,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
             </Space>
 
             <Space style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-              <Button
-                type="default"
-                onClick={handleCancel}
-              >
+              <Button type="default" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button type="primary" htmlType="submit" loading={submitting}>

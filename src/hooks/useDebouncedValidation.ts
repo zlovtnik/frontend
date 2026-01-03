@@ -38,7 +38,6 @@ export function useDebouncedValidation<T extends FieldValues>(
     return () => {
       if (timerId !== undefined) {
         clearTimeout(timerId);
-        timerId = undefined;
       }
     };
   }, [trigger, delay, shouldValidate, values]);

@@ -47,7 +47,9 @@ const isLegacyApiSuccessResponse = <T>(
   const hasValidStatus =
     status === undefined || (typeof status === 'string' && status === 'success');
 
-  return typeof msg === 'string' && msg === 'ok' && 'data' in (response as object) && hasValidStatus;
+  return (
+    typeof msg === 'string' && msg === 'ok' && 'data' in (response as object) && hasValidStatus
+  );
 };
 
 export const isApiResponseSuccess = <T>(

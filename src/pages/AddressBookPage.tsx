@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import type { Contact } from '@/types/contact';
@@ -6,7 +6,18 @@ import { Gender } from '@/types/contact';
 import { normalizePersonDTO, type PersonDTO } from '@/types/person';
 import { addressBookService } from '@/services/api';
 import { getEnv } from '@/config/env';
-import { Button, Input, Card, Table, Alert, Space, Typography, Divider, App, Select } from 'antd';
+import {
+  Button,
+  Input,
+  Card,
+  Table,
+  Alert,
+  Space,
+  Typography,
+  Divider,
+  AntdApp,
+  Select,
+} from '@/components/AntdComponents';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   ContactFormModal,
@@ -127,7 +138,7 @@ export const normalizeContactAddress = (
 
 export const AddressBookPage: React.FC = () => {
   const { tenant } = useAuth();
-  const { message } = App.useApp();
+  const { message } = AntdApp.useApp();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -572,8 +583,8 @@ export const AddressBookPage: React.FC = () => {
     setOperationError(null); // Clear operation error on success
   };
 
-  // Handle edit
-  const handleEdit = (contact: Contact) => {
+  // Handle edit - memoized to maintain stable reference for ActionButtons
+  const handleEdit = useCallback((contact: Contact) => {
     setEditingContact(contact);
     setFormError(null);
     setContactFormInitialValues({
@@ -592,12 +603,12 @@ export const AddressBookPage: React.FC = () => {
       country: contact.address?.country ?? DEFAULT_COUNTRY,
     });
     setIsFormOpen(true);
-  };
+  }, []);
 
-  // Handle delete - open confirmation modal
-  const handleDelete = (id: Contact['id']) => {
+  // Handle delete - open confirmation modal - memoized to maintain stable reference for ActionButtons
+  const handleDelete = useCallback((id: Contact['id']) => {
     setDeleteContactId(id);
-  };
+  }, []);
 
   // Confirm delete
   const confirmDelete = async () => {
@@ -646,75 +657,89 @@ export const AddressBookPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Table columns for contacts display
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'fullName',
-      key: 'fullName',
-      sorter: (a: Contact, b: Contact) => a.fullName.localeCompare(b.fullName),
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Phone',
-      dataIndex: 'phone',
-      key: 'phone',
-    },
-    {
-      title: 'Address',
-      dataIndex: 'address',
-      key: 'address',
-      render: (address: Contact['address']) => {
-        if (!address) return '-';
+  // Memoize address rendering function
+  const renderAddress = useCallback((address: Contact['address']) => {
+    if (!address) return '-';
 
-        const parts = [];
+    const parts = [];
 
-        if (address.street1) parts.push(address.street1);
-        if (address.city) parts.push(address.city);
-        if (address.state && address.zipCode) {
-          parts.push(`${address.state} ${address.zipCode}`);
-        } else {
-          if (address.state) parts.push(address.state);
-          if (address.zipCode) parts.push(address.zipCode);
-        }
-        if (address.country) parts.push(address.country);
+    if (address.street1) parts.push(address.street1);
+    if (address.city) parts.push(address.city);
+    if (address.state && address.zipCode) {
+      parts.push(`${address.state} ${address.zipCode}`);
+    } else {
+      if (address.state) parts.push(address.state);
+      if (address.zipCode) parts.push(address.zipCode);
+    }
+    if (address.country) parts.push(address.country);
 
-        return parts.length > 0 ? parts.join(', ') : '-';
+    return parts.length > 0 ? parts.join(', ') : '-';
+  }, []);
+
+  // Memoize action buttons component
+  const ActionButtons = memo(({ contact, isLoading }: { contact: Contact; isLoading: boolean }) => (
+    <Space size="middle">
+      <Button
+        type="link"
+        icon={<EditOutlined />}
+        data-testid={`edit-${contact.id}`}
+        onClick={() => {
+          handleEdit(contact);
+        }}
+      >
+        Edit
+      </Button>
+      <Button
+        type="link"
+        danger
+        icon={<DeleteOutlined />}
+        onClick={() => {
+          handleDelete(contact.id);
+        }}
+        disabled={isLoading}
+      >
+        Delete
+      </Button>
+    </Space>
+  ));
+
+  ActionButtons.displayName = 'ActionButtons';
+
+  // Table columns for contacts display - memoized
+  const columns = useMemo(
+    () => [
+      {
+        title: 'Name',
+        dataIndex: 'fullName',
+        key: 'fullName',
+        sorter: (a: Contact, b: Contact) => a.fullName.localeCompare(b.fullName),
       },
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: unknown, contact: Contact) => (
-        <Space size="middle">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            data-testid={`edit-${contact.id}`}
-            onClick={() => {
-              handleEdit(contact);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(contact.id)}
-            disabled={loading}
-          >
-            Delete
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
+      {
+        title: 'Email',
+        dataIndex: 'email',
+        key: 'email',
+      },
+      {
+        title: 'Phone',
+        dataIndex: 'phone',
+        key: 'phone',
+      },
+      {
+        title: 'Address',
+        dataIndex: 'address',
+        key: 'address',
+        render: renderAddress,
+      },
+      {
+        title: 'Actions',
+        key: 'actions',
+        render: (_: unknown, contact: Contact) => (
+          <ActionButtons contact={contact} isLoading={loading} />
+        ),
+      },
+    ],
+    [renderAddress, loading]
+  );
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>

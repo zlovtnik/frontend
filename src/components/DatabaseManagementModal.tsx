@@ -193,7 +193,10 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
                   title={
                     <Space>
                       <Text strong>{tenant.name}</Text>
-                      <Badge status={statusDisplay.color as BadgeStatus} text={statusDisplay.text} />
+                      <Badge
+                        status={statusDisplay.color as BadgeStatus}
+                        text={statusDisplay.text}
+                      />
                     </Space>
                   }
                   extra={

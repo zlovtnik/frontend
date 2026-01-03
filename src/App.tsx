@@ -5,6 +5,7 @@ import { PrivateRoute } from './components/PrivateRoute';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { EnvironmentErrorUI } from './components/EnvironmentErrorUI';
+import { PageSkeleton } from './components/PageSkeleton';
 import { getEnv, EnvironmentError } from './config/env';
 
 const HomePage = lazy(() =>
@@ -12,6 +13,9 @@ const HomePage = lazy(() =>
 );
 const LoginPage = lazy(() =>
   import('./pages/LoginPage.fp').then(module => ({ default: module.LoginPageFP }))
+);
+const OAuthCallbackPage = lazy(() =>
+  import('./pages/OAuthCallbackPage').then(module => ({ default: module.OAuthCallbackPage }))
 );
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage }))
@@ -53,10 +57,11 @@ export const App: React.FC = () => {
     <ErrorBoundary>
       <div className="min-h-screen bg-natural-light text-natural-dark">
         <AuthProvider>
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/callback" element={<OAuthCallbackPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<PasswordResetPage />} />
               <Route
@@ -64,7 +69,9 @@ export const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <DashboardPage />
+                      <Suspense fallback={<PageSkeleton variant="default" />}>
+                        <DashboardPage />
+                      </Suspense>
                     </Layout>
                   </PrivateRoute>
                 }
@@ -74,7 +81,9 @@ export const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <AddressBookPage />
+                      <Suspense fallback={<PageSkeleton variant="card" />}>
+                        <AddressBookPage />
+                      </Suspense>
                     </Layout>
                   </PrivateRoute>
                 }
@@ -84,7 +93,9 @@ export const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Layout>
-                      <TenantsPage />
+                      <Suspense fallback={<PageSkeleton variant="table" />}>
+                        <TenantsPage />
+                      </Suspense>
                     </Layout>
                   </PrivateRoute>
                 }

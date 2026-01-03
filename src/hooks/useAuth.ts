@@ -45,21 +45,72 @@ const mapTokenErrorToAuthFlowError = (error: TokenError): AuthFlowError => {
 };
 
 const mapThrownErrorToAuthFlowError = (thrown: unknown): AuthFlowError => {
-  if (
-    thrown &&
-    typeof thrown === 'object' &&
-    'type' in thrown &&
-    typeof (thrown as { type?: unknown }).type === 'string'
-  ) {
-    return thrown as AuthFlowError;
+  if (thrown && typeof thrown === 'object' && 'type' in thrown) {
+    const candidate = thrown as { type?: unknown; message?: unknown; statusCode?: unknown };
+
+    // Verify that type is one of the known AuthFlowError discriminants
+    const validTypes = [
+      'INVALID_CREDENTIALS',
+      'TOKEN_EXPIRED',
+      'TOKEN_REFRESH_FAILED',
+      'NETWORK_ERROR',
+      'UNAUTHORIZED',
+      'FORBIDDEN',
+      'SERVER_ERROR',
+      'LOGOUT_FAILED',
+      'INIT_FAILED',
+      'MISSING_TOKEN',
+      'TENANT_MISMATCH',
+    ];
+
+    if (typeof candidate.type === 'string' && validTypes.includes(candidate.type)) {
+      if (candidate.type === 'SERVER_ERROR') {
+        // SERVER_ERROR requires both statusCode and message
+        if (typeof candidate.statusCode === 'number' && typeof candidate.message === 'string') {
+          return thrown as AuthFlowError;
+        }
+      } else if (candidate.type === 'TOKEN_EXPIRED' || candidate.type === 'MISSING_TOKEN') {
+        // These discriminants intentionally have no extra fields
+        return thrown as AuthFlowError;
+      } else if (
+        candidate.type === 'TOKEN_REFRESH_FAILED' ||
+        candidate.type === 'LOGOUT_FAILED' ||
+        candidate.type === 'INIT_FAILED'
+      ) {
+        // These discriminants require reason
+        if (typeof (candidate as { reason?: unknown }).reason === 'string') {
+          return thrown as AuthFlowError;
+        }
+      } else if (candidate.type === 'TENANT_MISMATCH') {
+        // Requires expected and actual
+        const typed = candidate as { expected?: unknown; actual?: unknown };
+        if (typeof typed.expected === 'string' && typeof typed.actual === 'string') {
+          return thrown as AuthFlowError;
+        }
+      } else if (candidate.type === 'NETWORK_ERROR') {
+        // message is required, statusCode is optional
+        const typed = candidate as { statusCode?: unknown; message?: unknown };
+        if (
+          typeof typed.message === 'string' &&
+          (typed.statusCode === undefined || typeof typed.statusCode === 'number')
+        ) {
+          return thrown as AuthFlowError;
+        }
+      } else {
+        // INVALID_CREDENTIALS, UNAUTHORIZED, FORBIDDEN require message
+        if (typeof candidate.message === 'string') {
+          return thrown as AuthFlowError;
+        }
+      }
+    }
   }
 
   const message =
     thrown instanceof Error
       ? thrown.message
       : typeof thrown === 'string'
-      ? thrown
-      : 'Unexpected authentication error';
+        ? thrown
+        : 'Unexpected authentication error';
 
   return AuthFlowErrors.serverError(500, message);
 };
@@ -100,7 +151,8 @@ export function useAuth() {
       typeof value === 'object' &&
       value !== null &&
       'error' in value &&
-      (typeof (value as { error: unknown }).error === 'string' || (value as { error: unknown }).error === null)
+      (typeof (value as { error: unknown }).error === 'string' ||
+        (value as { error: unknown }).error === null)
     );
   };
 
@@ -114,7 +166,7 @@ export function useAuth() {
   };
 
   // Wrap imperative context operations in a memoized Result-based API for composability
-  const resultApi = useMemo(() => {
+  const loginApi = useMemo(() => {
     const isNeverthrowResult = (value: unknown): value is Result<unknown, unknown> => {
       if (typeof value !== 'object' || value === null) {
         return false;
@@ -146,7 +198,7 @@ export function useAuth() {
     return {
       login,
     };
-  }, [auth]);
+  }, [auth.login]);
   const requireAuthResult = (): Result<boolean, AuthFlowError> => {
     if (auth.isAuthenticated) {
       return ok(true);
@@ -177,14 +229,10 @@ export function useAuth() {
       .mapErr(mapStorageErrorToAuthFlowError);
 
   const getTenantIdFromToken = (): Result<string, AuthFlowError> =>
-    getTokenResult().andThen(token =>
-      extractTenantId(token).mapErr(mapTokenErrorToAuthFlowError)
-    );
+    getTokenResult().andThen(token => extractTenantId(token).mapErr(mapTokenErrorToAuthFlowError));
 
   const getUserIdFromToken = (): Result<string, AuthFlowError> =>
-    getTokenResult().andThen(token =>
-      extractUserId(token).mapErr(mapTokenErrorToAuthFlowError)
-    );
+    getTokenResult().andThen(token => extractUserId(token).mapErr(mapTokenErrorToAuthFlowError));
 
   const requireRole = (role: string): Result<void, AuthFlowError> =>
     getUserResult().andThen(user =>
@@ -207,9 +255,7 @@ export function useAuth() {
         : err(AuthFlowErrors.forbidden(`User must have roles: ${roles.join(', ')}`))
     );
 
-  const requireTenantAccess = (
-    tenantId: TenantId
-  ): Result<void, AuthFlowError | AccessError> =>
+  const requireTenantAccess = (tenantId: TenantId): Result<void, AuthFlowError | AccessError> =>
     getUserResult().andThen(user => validateTenantAccess(user, tenantId));
 
   const error = hasErrorProperty(auth) ? auth.error : null;
@@ -223,8 +269,8 @@ export function useAuth() {
     isLoading: auth.isLoading,
     error,
     clearError,
-    logout: () => auth.logout(),
-    refreshToken: () => auth.refreshToken(),
+    logout: auth.logout,
+    refreshToken: auth.refreshToken,
     requireAuth: requireAuthResult,
     ensureAuthenticated,
     getUserResult,
@@ -238,6 +284,10 @@ export function useAuth() {
     requireTenantAccess,
 
     // Result-based API (spread last to ensure these override)
-    ...resultApi,
+    // Note: login is wrapped with error mapping to return Result<void, AuthFlowError | CredentialValidationError>,
+    // while logout and refreshToken are bound directly from the context. This asymmetry exists because login
+    // is the primary user-facing operation that needs consistent error handling, whereas logout and refreshToken
+    // are typically fire-and-forget or already handle their own errors internally.
+    ...loginApi,
   };
 }

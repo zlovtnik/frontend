@@ -51,16 +51,16 @@ export type AuthStateFP =
   | { type: 'idle' }
   | { type: 'loading' }
   | {
-    type: 'authenticated';
-    user: User;
-    tenant: Tenant;
-    token: string;
-  }
+      type: 'authenticated';
+      user: User;
+      tenant: Tenant;
+      token: string;
+    }
   | {
-    type: 'error';
-    error: AppError;
-    previousState?: Exclude<AuthStateFP, { type: 'error' }>;
-  };
+      type: 'error';
+      error: AppError;
+      previousState?: Exclude<AuthStateFP, { type: 'error' }>;
+    };
 
 /**
  * FP-based authentication context interface

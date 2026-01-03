@@ -1,142 +1,67 @@
 /**
- * Login Page - Functional Programming Implementation
+ * Login Page - React Hook Form Implementation
  *
- * Implements railway-oriented programming with Result types for:
- * - Form validation pipeline
- * - Error handling with pattern matching
- * - Type-safe state management
+ * Provides:
+ * - Zod-powered validation with React Hook Form
+ * - Debounced real-time feedback and success indicators
+ * - Result-aware submission handling with functional error mapping
  *
  * @module LoginPage
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useKeycloakAuth } from '@/hooks/useKeycloakAuth';
 import type { LoginCredentials } from '@/types/auth';
 import type { AuthFlowError } from '@/types/errors';
-import { Card, Form, Input, Button, Checkbox, Typography, Alert, Flex } from 'antd';
-import { type Result, ok, err } from 'neverthrow';
-import { match } from 'ts-pattern';
-import {
-  validateUsername,
-  validatePassword,
-  validateTenantId,
-  validateEmail,
-  formatCredentialValidationError,
-  type ValidatedUsername,
-  type ValidatedPassword,
-  type CredentialValidationError,
-  type ValidatedEmail,
-} from '@/utils/validation';
+import { formatAuthFlowError } from '@/types/errors';
 import type { TenantId } from '@/types/ids';
 import {
-  createFormPipeline,
-  PipelineStates,
-  isPipelineLoading,
-  formatPipelineError,
-  type PipelineState,
-  type PipelineError,
-  type FormValidator,
-  type Transformer,
-  type Submitter,
-} from '@/utils/formPipeline';
+  Card,
+  Button,
+  Typography,
+  Alert,
+  Flex,
+  Space,
+  Checkbox,
+  Divider,
+} from '@/components/AntdComponents';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
 
-/**
- * Login form input types
- */
-interface LoginFormData {
-  usernameOrEmail: string;
-  password: string;
-  tenantId: string;
-  rememberMe: boolean;
-}
+import { FormField } from '@/components/FormField';
+import { loginSchema } from '@/validation/schemas';
+import { useDebouncedValidation } from '@/hooks/useDebouncedValidation';
+import { useWarnOnUnsavedChanges } from '@/hooks/useWarnOnUnsavedChanges';
+import {
+  formatCredentialValidationError,
+  type CredentialValidationError,
+} from '@/utils/validation';
 
-/**
- * Validated login credentials (branded types)
- */
-interface ValidatedLoginData {
-  usernameOrEmail: ValidatedUsername | ValidatedEmail;
-  password: ValidatedPassword;
-  tenantId: TenantId;
-  rememberMe: boolean;
-}
+type LoginFormValues = z.infer<typeof loginSchema>;
 
-/**
- * Login DTO (matches API expectations)
- */
-interface LoginDTO {
-  usernameOrEmail: string;
-  password: string;
-  tenantId: TenantId;
-  rememberMe: boolean;
-}
-
-/**
- * Login response type
- */
-interface LoginResponse {
-  success: boolean;
-  message?: string;
-}
-
-/**
- * Form validation function
- * Validates all login form fields using Result types
- */
-const validateLoginForm: FormValidator<
-  LoginFormData,
-  ValidatedLoginData,
-  CredentialValidationError
-> = (
-  formData: LoginFormData
-): Result<ValidatedLoginData, Record<string, CredentialValidationError>> => {
-  // Accept either email or username; try email first, then fall back to username validation
-  const usernameOrEmailResult = validateEmail(formData.usernameOrEmail).orElse(() =>
-    validateUsername(formData.usernameOrEmail)
-  );
-
-  const passwordResult = validatePassword(formData.password);
-  const tenantIdResult = validateTenantId(formData.tenantId);
-
-  // Collect all errors
-  const errors: Partial<Record<keyof LoginFormData, CredentialValidationError>> = {};
-
-  if (usernameOrEmailResult.isErr()) {
-    errors.usernameOrEmail = usernameOrEmailResult.error;
-  }
-  if (passwordResult.isErr()) {
-    errors.password = passwordResult.error;
-  }
-  if (tenantIdResult.isErr()) {
-    errors.tenantId = tenantIdResult.error;
-  }
-
-  // Return all errors if any exist
-  if (Object.keys(errors).length > 0) {
-    return err(errors as Record<string, CredentialValidationError>);
-  }
-
-  // All validations passed - use _unsafeUnwrap since we checked errors
-  return ok({
-    usernameOrEmail: usernameOrEmailResult._unsafeUnwrap(),
-    password: passwordResult._unsafeUnwrap(),
-    tenantId: tenantIdResult._unsafeUnwrap(),
-    rememberMe: formData.rememberMe,
-  });
+const credentialFieldMap: Record<CredentialValidationError['type'], keyof LoginFormValues> = {
+  EMPTY_USERNAME: 'usernameOrEmail',
+  USERNAME_TOO_SHORT: 'usernameOrEmail',
+  USERNAME_TOO_LONG: 'usernameOrEmail',
+  INVALID_USERNAME_FORMAT: 'usernameOrEmail',
+  INVALID_EMAIL_FORMAT: 'usernameOrEmail',
+  EMPTY_PASSWORD: 'password',
+  PASSWORD_TOO_SHORT: 'password',
+  PASSWORD_TOO_WEAK: 'password',
+  EMPTY_TENANT_ID: 'tenantId',
+  INVALID_TENANT_ID_FORMAT: 'tenantId',
 };
 
-/**
- * Transform validated data to API DTO
- */
-const transformToLoginDTO: Transformer<ValidatedLoginData, LoginDTO, CredentialValidationError> = (
-  validated: ValidatedLoginData
-): Result<LoginDTO, PipelineError<CredentialValidationError>> => {
-  return ok({
-    usernameOrEmail: validated.usernameOrEmail,
-    password: validated.password,
-    tenantId: validated.tenantId,
-    rememberMe: validated.rememberMe,
-  });
+const isCredentialValidationError = (error: unknown): error is CredentialValidationError => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const candidate = error as { type?: unknown };
+  return typeof candidate.type === 'string' && candidate.type in credentialFieldMap;
 };
 
 /**
@@ -164,177 +89,91 @@ const isLocationState = (state: unknown): state is LocationState => {
  */
 export const LoginPageFP: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { initiateKeycloakLogin, isLoading: keycloakLoading, isKeycloakEnabled } = useKeycloakAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = isLocationState(location.state) ? location.state : null;
-  const [form] = Form.useForm<LoginFormData>();
-
-  // Pipeline state management using discriminated union
-  const [pipelineState, setPipelineState] = useState<
-    PipelineState<LoginResponse, CredentialValidationError>
-  >(PipelineStates.idle());
-
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   // Get the intended destination
   const from = locationState?.from?.pathname || '/dashboard';
-
-  /**
-   * Submit function that wraps the login API call
-   */
-  const submitLogin: Submitter<LoginDTO, LoginResponse, CredentialValidationError> = async (
-    dto: LoginDTO
-  ): Promise<Result<LoginResponse, PipelineError<CredentialValidationError>>> => {
-    try {
-      const credentials: LoginCredentials = {
-        usernameOrEmail: dto.usernameOrEmail,
-        password: dto.password,
-        tenantId: dto.tenantId, // Already TenantId type, no conversion needed
-        rememberMe: dto.rememberMe,
-      };
-
-      // Await the login call and treat it as a Result
-      const loginResult: Result<void, AuthFlowError | CredentialValidationError> =
-        await login(credentials);
-
-      // Check if the result is Ok
-      if (loginResult.isOk()) {
-        return ok({
-          success: true,
-          message: 'Login successful',
-        });
-      }
-
-      // Map the error to a PipelineError (isErr() case)
-      const error = loginResult.error;
-      const statusCode =
-        'statusCode' in error && typeof error.statusCode === 'number'
-          ? error.statusCode
-          : undefined;
-
-      return err({
-        type: 'SUBMISSION_ERROR',
-        message: 'message' in error ? String(error.message || error) : 'Login failed',
-        statusCode,
-      });
-    } catch (error) {
-      // Keep try/catch only for unexpected exceptions
-      return err({
-        type: 'SUBMISSION_ERROR',
-        message: error instanceof Error ? error.message : 'Unexpected error occurred during login',
-      });
-    }
-  };
-
-  /**
-   * Create the complete form pipeline (without sanitization due to branded types)
-   */
-  const loginPipeline = createFormPipeline<
-    LoginFormData,
-    ValidatedLoginData,
-    LoginDTO,
-    LoginResponse,
-    CredentialValidationError
-  >({
-    validate: validateLoginForm,
-    transform: transformToLoginDTO,
-    submit: submitLogin,
+  const methods = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    defaultValues: useMemo(
+      () => ({
+        usernameOrEmail: '',
+        password: '',
+        tenantId: '',
+        rememberMe: false,
+      }),
+      []
+    ),
   });
 
-  /**
-   * Handle form submission with pipeline
-   */
-  const onSubmit = async (formData: LoginFormData) => {
-    // Reset errors
-    setFieldErrors({});
-    setPipelineState(PipelineStates.validating());
+  const {
+    handleSubmit,
+    trigger,
+    watch,
+    reset,
+    setError,
+    formState: { isDirty, isSubmitting, submitCount },
+  } = methods;
 
-    // Execute the complete pipeline
-    const result = await loginPipeline(formData);
+  const watchedValues = watch();
+  const shouldValidate = useMemo(() => isDirty || submitCount > 0, [isDirty, submitCount]);
 
-    // Pattern match on result - pipeline already returns Result, no need for try/catch
-    result.match(
-      // Success case
-      response => {
-        setPipelineState(PipelineStates.success(response));
-        navigate(from, { replace: true });
-      },
-      // Error case - use pattern matching for error handling
-      error => {
-        setPipelineState(PipelineStates.error(error));
+  useDebouncedValidation({ trigger, values: watchedValues, delay: 250, shouldValidate });
+  useWarnOnUnsavedChanges(isDirty && !isSubmitting);
 
-        // Extract field-level errors for display
-        if (error.type === 'VALIDATION_ERROR') {
-          const errors = error.errors;
+  const handleSubmissionError = (error: AuthFlowError | CredentialValidationError | unknown) => {
+    if (isCredentialValidationError(error)) {
+      const field = credentialFieldMap[error.type];
+      setError(field, {
+        type: 'manual',
+        message: formatCredentialValidationError(error),
+      });
+      return;
+    }
 
-          if (typeof errors === 'object' && !('type' in errors)) {
-            // Multiple field errors
-            const formattedErrors: Record<string, string> = {};
+    if (error && typeof error === 'object' && 'type' in error) {
+      setSubmissionError(formatAuthFlowError(error as AuthFlowError));
+      return;
+    }
 
-            for (const [field, validationError] of Object.entries(errors)) {
-              // Add runtime shape guard before casting
-              if (
-                validationError &&
-                typeof validationError === 'object' &&
-                'type' in validationError &&
-                typeof validationError.type === 'string'
-              ) {
-                formattedErrors[field] = formatCredentialValidationError(validationError);
-              } else {
-                // Fallback for unexpected shapes
-                formattedErrors[field] = 'Validation error occurred';
-              }
-            }
+    setSubmissionError('Login failed. Please try again.');
+  };
 
-            setFieldErrors(formattedErrors);
-          }
+  const onSubmit = async (formValues: LoginFormValues) => {
+    setSubmissionError(null);
+
+    const credentials: LoginCredentials = {
+      usernameOrEmail: formValues.usernameOrEmail,
+      password: formValues.password,
+      tenantId: formValues.tenantId as TenantId,
+      rememberMe: formValues.rememberMe ?? false,
+    };
+
+    try {
+      const result = await login(credentials);
+
+      if ('isErr' in result && typeof result.isErr === 'function') {
+        if (result.isErr()) {
+          handleSubmissionError(result.error);
+          return;
         }
       }
-    );
-  };
 
-  /**
-   * Render error message based on pipeline state
-   */
-  const renderErrorAlert = () => {
-    return match(pipelineState)
-      .with({ status: 'error' }, state => (
-        <Form.Item>
-          <Alert
-            message={formatPipelineError(state.error, formatCredentialValidationError)}
-            type="error"
-            closable
-            onClose={() => {
-              setPipelineState(PipelineStates.idle());
-            }}
-            style={{
-              borderRadius: '8px',
-              border: '1px solid var(--danger-300)',
-              backgroundColor: 'var(--danger-50)',
-            }}
-          />
-        </Form.Item>
-      ))
-      .otherwise(() => null);
-  };
-
-  /**
-   * Get button loading state
-   */
-  const isFormLoading = authLoading || isPipelineLoading(pipelineState);
-
-  /**
-   * Get field-specific validation status
-   */
-  const getFieldValidationProps = (fieldName: keyof LoginFormData) => {
-    if (fieldErrors[fieldName]) {
-      return {
-        validateStatus: 'error' as const,
-        help: fieldErrors[fieldName],
-      };
+      reset(undefined, { keepValues: false });
+      navigate(from, { replace: true });
+    } catch (error) {
+      handleSubmissionError(error);
     }
-    return {};
   };
+
+  const isFormLoading = authLoading || isSubmitting;
+  const isKeycloakLoading = keycloakLoading;
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -400,83 +239,108 @@ export const LoginPageFP: React.FC = () => {
           Access your multi-tenant application
         </Typography.Text>
 
-        <Form form={form} onFinish={onSubmit} size="large" layout="vertical">
-          <Form.Item
-            label={
-              <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>
-                Username or Email
-              </span>
-            }
-            name="usernameOrEmail"
-            rules={[{ required: true, message: 'Username or email is required' }]}
-            {...getFieldValidationProps('usernameOrEmail')}
-          >
-            <Input
-              placeholder="Enter your username or email"
-              className="login-input"
-              disabled={isFormLoading}
-            />
-          </Form.Item>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              {submissionError && (
+                <Alert
+                  message="Unable to sign in"
+                  description={submissionError}
+                  type="error"
+                  closable
+                  onClose={() => {
+                    setSubmissionError(null);
+                  }}
+                  role="alert"
+                />
+              )}
 
-          <Form.Item
-            label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Password</span>}
-            name="password"
-            rules={[{ required: true, message: 'Password is required' }]}
-            {...getFieldValidationProps('password')}
-          >
-            <Input.Password
-              placeholder="Enter your password"
-              className="login-input"
-              disabled={isFormLoading}
-            />
-          </Form.Item>
+              <FormField
+                name="usernameOrEmail"
+                label="Username or Email"
+                type="text"
+                required
+                placeholder="Enter your username or email"
+                disabled={isFormLoading}
+              />
 
-          <Form.Item
-            label={<span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>Tenant ID</span>}
-            name="tenantId"
-            rules={[{ required: true, message: 'Tenant ID is required' }]}
-            {...getFieldValidationProps('tenantId')}
-          >
-            <Input
-              placeholder="Enter your tenant ID"
-              className="login-input"
-              disabled={isFormLoading}
-            />
-          </Form.Item>
+              <FormField
+                name="password"
+                label="Password"
+                type="password"
+                required
+                placeholder="Enter your password"
+                disabled={isFormLoading}
+              />
 
-          <Form.Item name="rememberMe" valuePropName="checked" initialValue={false}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '16px',
-              }}
-            >
-              <Checkbox style={{ color: 'var(--primary-600)' }} disabled={isFormLoading}>
-                Remember me
-              </Checkbox>
-            </div>
-          </Form.Item>
+              <FormField
+                name="tenantId"
+                label="Tenant ID"
+                type="text"
+                required
+                placeholder="Enter your tenant ID"
+                disabled={isFormLoading}
+              />
 
-          {renderErrorAlert()}
+              <Controller
+                name="rememberMe"
+                render={({ field }) => (
+                  <Checkbox
+                    {...field}
+                    checked={field.value}
+                    disabled={isFormLoading}
+                    style={{ color: 'var(--primary-600)' }}
+                  >
+                    Remember me
+                  </Checkbox>
+                )}
+              />
 
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={isFormLoading}
-              className="login-submit-button"
-            >
-              {authLoading
-                ? 'Signing In...'
-                : match(pipelineState)
-                    .with({ status: 'validating' }, () => 'Validating...')
-                    .otherwise(() => 'Sign In')}
-            </Button>
-          </Form.Item>
-        </Form>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                loading={isFormLoading}
+                disabled={isFormLoading || isKeycloakLoading}
+                className="login-submit-button"
+              >
+                {isSubmitting ? 'Validating…' : authLoading ? 'Signing In…' : 'Sign In'}
+              </Button>
+
+              {/* Keycloak OAuth2 Option */}
+              {isKeycloakEnabled && (
+                <>
+                  <Divider style={{ margin: '16px 0' }}>OR</Divider>
+                  <Button
+                    type="default"
+                    block
+                    loading={isKeycloakLoading}
+                    disabled={isFormLoading || isKeycloakLoading}
+                    onClick={initiateKeycloakLogin}
+                    style={{
+                      borderColor: '#3333ff',
+                      color: '#3333ff',
+                    }}
+                  >
+                    {isKeycloakLoading ? 'Redirecting to Keycloak…' : 'Sign In with Keycloak'}
+                  </Button>
+                  <Typography.Text
+                    type="secondary"
+                    style={{
+                      textAlign: 'center',
+                      display: 'block',
+                      fontSize: '12px',
+                      marginTop: '8px',
+                      color: 'var(--primary-500)',
+                    }}
+                  >
+                    Single Sign-On via Keycloak OAuth2
+                  </Typography.Text>
+                </>
+              )}
+            </Space>
+          </form>
+        </FormProvider>
       </Card>
 
       <Typography.Text

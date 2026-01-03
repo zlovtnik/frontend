@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "bun scripts/validate-env.js && vite build",
+    "build:analyze": "bun scripts/validate-env.js && vite build && bun scripts/analyze-assets.js",
     "preview": "vite preview",
     "test": "bun test",
     "test:watch": "bun test --watch",
@@ -39,6 +40,7 @@
     "@types/qs": "^6.14.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "@types/react-window": "^1.8.8",
     "@typescript-eslint/eslint-plugin": "^8.46.1",
     "@typescript-eslint/parser": "^8.46.1",
     "@vitejs/plugin-react": "^4.0.0",
@@ -56,10 +58,13 @@
     "msw": "^2.11.5",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
+    "react-window": "^1.8.10",
+    "rollup-plugin-visualizer": "^6.0.5",
     "tailwindcss": "^4.1.14",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.46.1",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vite-plugin-imagemin": "^0.6.1"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
