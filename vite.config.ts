@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import viteImagemin from 'vite-plugin-imagemin';
 import fs from 'fs';
 
 // Import cache strategies
@@ -59,18 +58,6 @@ export default defineConfig({
     },
     react(),
     VitePWA(pwaOptions),
-    viteImagemin({
-      mozjpeg: { quality: 80 },
-      jpegtran: false, // Disable jpegtran due to Node.js 22+ compatibility issues
-      pngquant: { quality: [0.65, 0.8] },
-      webp: { quality: 80 },
-      svgo: {
-        plugins: [
-          { name: 'removeViewBox', active: false },
-          { name: 'removeEmptyAttrs', active: false },
-        ],
-      },
-    }),
     ...(visualizer ? [visualizer({
       filename: 'dist/stats.html',
       open: false,
