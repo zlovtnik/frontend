@@ -44,6 +44,12 @@ const pwaOptions = {
 };
 
 export default defineConfig({
+  define: {
+    global: 'globalThis',
+    'process.env': {},
+    'process.version': '"1.0.0"',
+    'process.platform': '"browser"',
+  },
   plugins: [
     {
       name: 'ensure-dist-dir',
