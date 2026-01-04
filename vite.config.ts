@@ -84,19 +84,9 @@ export default defineConfig({
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',
         manualChunks: (id) => {
-          // Ant Design - split into smaller chunks
-          if (id.includes('antd')) {
-            if (id.includes('@ant-design/icons')) {
-              return 'antd-icons';
-            }
-            // Split antd components by category
-            if (id.includes('es/form') || id.includes('es/input') || id.includes('es/button')) {
-              return 'antd-forms';
-            }
-            if (id.includes('es/table') || id.includes('es/list') || id.includes('es/card')) {
-              return 'antd-display';
-            }
-            return 'antd-core';
+          // Ant Design and related libraries
+          if (id.includes('antd') || id.includes('@ant-design') || id.includes('rc-')) {
+            return 'antd-vendor';
           }
 
           // Router
