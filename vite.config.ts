@@ -84,11 +84,6 @@ export default defineConfig({
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',
         manualChunks: (id) => {
-          // Ant Design and related libraries
-          if (id.includes('antd') || id.includes('@ant-design') || id.includes('rc-')) {
-            return 'antd-vendor';
-          }
-
           // Router
           if (id.includes('react-router')) {
             return 'router';
