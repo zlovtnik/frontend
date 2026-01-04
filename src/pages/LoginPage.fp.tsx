@@ -12,7 +12,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useKeycloakAuth } from '@/hooks/useKeycloakAuth';
 import type { LoginCredentials } from '@/types/auth';
 import type { AuthFlowError } from '@/types/errors';
 import { formatAuthFlowError } from '@/types/errors';
@@ -25,7 +24,6 @@ import {
   Flex,
   Space,
   Checkbox,
-  Divider,
 } from '@/components/AntdComponents';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -89,7 +87,6 @@ const isLocationState = (state: unknown): state is LocationState => {
  */
 export const LoginPageFP: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { initiateKeycloakLogin, isLoading: keycloakLoading, isKeycloakEnabled } = useKeycloakAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = isLocationState(location.state) ? location.state : null;
@@ -173,7 +170,6 @@ export const LoginPageFP: React.FC = () => {
   };
 
   const isFormLoading = authLoading || isSubmitting;
-  const isKeycloakLoading = keycloakLoading;
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -301,43 +297,11 @@ export const LoginPageFP: React.FC = () => {
                 htmlType="submit"
                 block
                 loading={isFormLoading}
-                disabled={isFormLoading || isKeycloakLoading}
+                disabled={isFormLoading}
                 className="login-submit-button"
               >
                 {isSubmitting ? 'Validating…' : authLoading ? 'Signing In…' : 'Sign In'}
               </Button>
-
-              {/* Keycloak OAuth2 Option */}
-              {isKeycloakEnabled && (
-                <>
-                  <Divider style={{ margin: '16px 0' }}>OR</Divider>
-                  <Button
-                    type="default"
-                    block
-                    loading={isKeycloakLoading}
-                    disabled={isFormLoading || isKeycloakLoading}
-                    onClick={initiateKeycloakLogin}
-                    style={{
-                      borderColor: '#3333ff',
-                      color: '#3333ff',
-                    }}
-                  >
-                    {isKeycloakLoading ? 'Redirecting to Keycloak…' : 'Sign In with Keycloak'}
-                  </Button>
-                  <Typography.Text
-                    type="secondary"
-                    style={{
-                      textAlign: 'center',
-                      display: 'block',
-                      fontSize: '12px',
-                      marginTop: '8px',
-                      color: 'var(--primary-500)',
-                    }}
-                  >
-                    Single Sign-On via Keycloak OAuth2
-                  </Typography.Text>
-                </>
-              )}
             </Space>
           </form>
         </FormProvider>

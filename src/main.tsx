@@ -1,4 +1,3 @@
-import './polyfills';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -73,12 +72,11 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 
 // Preload common passwords for synchronous access
-// Wrapped in setTimeout to defer execution after app initialization
-setTimeout(() => {
+if (typeof document !== 'undefined' && document.getElementById('root')) {
   preloadCommonPasswords().catch((error: unknown) => {
     console.warn('Failed to preload common passwords:', error);
   });
-}, 0);
+}
 
 root.render(
   <React.StrictMode>

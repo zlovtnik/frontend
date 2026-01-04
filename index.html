@@ -13,24 +13,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Actix Frontend">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" type="image/png">
-  <script>
-    (function() {
-      if (typeof globalThis.process === 'undefined') {
-        globalThis.process = {
-          env: {},
-          version: '1.0.0',
-          platform: 'browser',
-          browser: true,
-          versions: {},
-          cwd: function() { return '/'; },
-          nextTick: function(fn) { setTimeout(fn, 0); }
-        };
-      }
-      if (typeof window !== 'undefined' && typeof window.process === 'undefined') {
-        window.process = globalThis.process;
-      }
-    })();
-  </script>
 </head>
 <body>
   <div id="root"></div>
