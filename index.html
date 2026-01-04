@@ -16,6 +16,24 @@
 </head>
 <body>
   <div id="root"></div>
+  <script>
+    (function() {
+      if (typeof globalThis.process === 'undefined') {
+        globalThis.process = {
+          env: {},
+          version: '1.0.0',
+          platform: 'browser',
+          browser: true,
+          versions: {},
+          cwd: function() { return '/'; },
+          nextTick: function(fn) { setTimeout(fn, 0); }
+        };
+      }
+      if (typeof window !== 'undefined' && typeof window.process === 'undefined') {
+        window.process = globalThis.process;
+      }
+    })();
+  </script>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
