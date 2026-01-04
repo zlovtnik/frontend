@@ -47,6 +47,8 @@ const pwaOptions = {
 };
 
 export default defineConfig({
+  // Force production build with inlined process polyfills
+  // Last updated: 2026-01-04
   define: {
     global: 'globalThis',
     'process.version': JSON.stringify('1.0.0'),
