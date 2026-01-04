@@ -23,6 +23,9 @@ const pwaOptions = {
     enabled: false,
   },
   workbox: {
+    skipWaiting: true,
+    clientsClaim: true,
+    cleanupOutdatedCaches: true,
     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,ttf,eot,otf}'],
     runtimeCaching: [
       staticAssetCache,
