@@ -14,10 +14,6 @@ interface EnvConfig {
   isProduction: boolean;
   defaultCountry: string;
   enablePwnedPasswordCheck: boolean;
-  keycloakIssuerUrl?: string;
-  keycloakClientId?: string;
-  keycloakRedirectUrl?: string;
-  useKeycloakOAuth?: boolean;
 }
 
 class EnvironmentError extends Error {
@@ -83,21 +79,6 @@ export function getEnvConfig(): EnvConfig {
         import.meta.env.MODE === 'production' ? 'true' : 'false'
       ).toLowerCase() === 'true';
 
-    // Keycloak OAuth2 configuration (optional - can use direct login instead)
-    const keycloakIssuerUrl = getOptionalEnv('VITE_KEYCLOAK_ISSUER_URL', '').trim() || undefined;
-    const keycloakClientId = getOptionalEnv('VITE_KEYCLOAK_CLIENT_ID', '').trim() || undefined;
-    const keycloakRedirectUrl = getOptionalEnv('VITE_KEYCLOAK_REDIRECT_URL', '').trim() || undefined;
-    
-    // Validate Keycloak URLs if provided
-    if (keycloakIssuerUrl) {
-      validateUrl(keycloakIssuerUrl, 'VITE_KEYCLOAK_ISSUER_URL');
-    }
-    if (keycloakRedirectUrl) {
-      validateUrl(keycloakRedirectUrl, 'VITE_KEYCLOAK_REDIRECT_URL');
-    }
-
-    const useKeycloakOAuth = (keycloakIssuerUrl && keycloakClientId) ?? false;
-
     return {
       apiUrl,
       appName: getOptionalEnv('VITE_APP_NAME', 'Actix Web REST API'),
@@ -107,10 +88,6 @@ export function getEnvConfig(): EnvConfig {
       isProduction: import.meta.env.MODE === 'production',
       defaultCountry,
       enablePwnedPasswordCheck,
-      keycloakIssuerUrl,
-      keycloakClientId,
-      keycloakRedirectUrl,
-      useKeycloakOAuth,
     };
   } catch (error) {
     if (error instanceof EnvironmentError) {
