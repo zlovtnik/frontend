@@ -47,16 +47,6 @@ const pwaOptions = {
 };
 
 export default defineConfig({
-  // Force production build with inlined process polyfills
-  // Last updated: 2026-01-04
-  define: {
-    global: 'globalThis',
-    'process.version': JSON.stringify('1.0.0'),
-    'process.env.NODE_ENV': JSON.stringify('production'),
-    'process.platform': JSON.stringify('browser'),
-    'process.browser': 'true',
-    'process.versions': JSON.stringify({}),
-  },
   plugins: [
     {
       name: 'ensure-dist-dir',
@@ -90,14 +80,10 @@ export default defineConfig({
     assetsInlineLimit: 4096, // inline assets < 4kb
     cssCodeSplit: true,
     rollupOptions: {
+      external: ['browserslist', 'caniuse-lite'], // Exclude build-time dependencies
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',
         manualChunks: (id) => {
-          // React ecosystem
-          if (id.includes('react') || id.includes('react-dom')) {
-            return 'react-vendor';
-          }
-
           // Ant Design - split into smaller chunks
           if (id.includes('antd')) {
             if (id.includes('@ant-design/icons')) {
