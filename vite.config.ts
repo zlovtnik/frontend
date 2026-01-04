@@ -47,6 +47,27 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  esbuild: {
+    banner: `
+      // Process polyfill - injected at the very beginning
+      (function() {
+        if (typeof globalThis.process === 'undefined') {
+          globalThis.process = {
+            env: {},
+            version: '1.0.0',
+            platform: 'browser',
+            browser: true,
+            versions: {},
+            cwd: function() { return '/'; },
+            nextTick: function(fn) { setTimeout(fn, 0); }
+          };
+        }
+        if (typeof window !== 'undefined' && typeof window.process === 'undefined') {
+          window.process = globalThis.process;
+        }
+      })();
+    `,
+  },
   plugins: [
     {
       name: 'ensure-dist-dir',
