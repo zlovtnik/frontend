@@ -46,9 +46,11 @@ const pwaOptions = {
 export default defineConfig({
   define: {
     global: 'globalThis',
-    'process.env': {},
-    'process.version': '"1.0.0"',
-    'process.platform': '"browser"',
+    process: JSON.stringify({
+      env: {},
+      version: '1.0.0',
+      platform: 'browser',
+    }),
   },
   plugins: [
     {
