@@ -70,6 +70,34 @@ export default defineConfig({
   },
   plugins: [
     {
+      name: 'inject-process-polyfill',
+      apply: 'build',
+      enforce: 'pre',
+      transformIndexHtml(html) {
+        const polyfill = `
+          <script>
+            (function() {
+              if (typeof globalThis.process === 'undefined') {
+                globalThis.process = {
+                  env: {},
+                  version: '1.0.0',
+                  platform: 'browser',
+                  browser: true,
+                  versions: {},
+                  cwd: function() { return '/'; },
+                  nextTick: function(fn) { setTimeout(fn, 0); }
+                };
+              }
+              if (typeof window !== 'undefined' && typeof window.process === 'undefined') {
+                window.process = globalThis.process;
+              }
+            })();
+          </script>
+        `;
+        return html.replace('<head>', '<head>' + polyfill);
+      },
+    },
+    {
       name: 'ensure-dist-dir',
       apply: 'build',
       enforce: 'pre',
@@ -103,6 +131,24 @@ export default defineConfig({
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',
+        banner: `
+          (function() {
+            if (typeof globalThis.process === 'undefined') {
+              globalThis.process = {
+                env: {},
+                version: '1.0.0',
+                platform: 'browser',
+                browser: true,
+                versions: {},
+                cwd: function() { return '/'; },
+                nextTick: function(fn) { setTimeout(fn, 0); }
+              };
+            }
+            if (typeof window !== 'undefined' && typeof window.process === 'undefined') {
+              window.process = globalThis.process;
+            }
+          })();
+        `,
         manualChunks: (id) => {
           // React ecosystem
           if (id.includes('react') || id.includes('react-dom')) {
