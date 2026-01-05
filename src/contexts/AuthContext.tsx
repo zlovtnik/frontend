@@ -7,8 +7,10 @@ import type {
   LoginCredentials,
   RegisterData,
   PasswordResetConfirm,
+  AuthResponse,
 } from '../types/auth';
 import { asTenantId, asUserId } from '../types/ids';
+import { verifyToken } from '../domain/auth';
 
 export interface AuthContextType {
   user: User | null;
@@ -56,6 +58,33 @@ const decodeJwtPayload = (token: string): JwtPayload | null => {
   } catch (error) {
     return null;
   }
+};
+
+// Validation helper functions
+const validateUser = (user: any): user is User => {
+  return (
+    user &&
+    typeof user.id === 'string' &&
+    user.id.trim() !== '' &&
+    typeof user.email === 'string' &&
+    user.email.trim() !== '' &&
+    typeof user.username === 'string' &&
+    user.username.trim() !== '' &&
+    Array.isArray(user.roles) &&
+    user.roles.every((role: unknown) => typeof role === 'string')
+  );
+};
+
+const validateTenant = (tenant: any): tenant is Tenant => {
+  return (
+    tenant &&
+    typeof tenant.id === 'string' &&
+    tenant.id.trim() !== '' &&
+    typeof tenant.name === 'string' &&
+    tenant.name.trim() !== '' &&
+    typeof tenant.settings === 'object' &&
+    tenant.settings !== null
+  );
 };
 
 // Helper to attempt token refresh and validate/construct user and tenant objects
@@ -209,11 +238,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const initAuth = async () => {
       try {
+        // First check for localStorage data (traditional login)
         const storedTokenData = localStorage.getItem('auth_token');
         const storedUser = localStorage.getItem('user');
         const storedTenant = localStorage.getItem('tenant');
 
-        if (storedTokenData && storedUser && storedTenant) {
+        // Also check for OAuth cookie-based authentication
+        const hasStoredData = storedTokenData && storedUser && storedTenant;
+        const isOAuthCallbackRoute = window.location.pathname === '/auth/callback';
+
+        if (import.meta.env.DEV) {
+          console.log('AuthContext init:', {
+            pathname: window.location.pathname,
+            hasStoredData,
+            isOAuthCallbackRoute,
+          });
+        }
+
+        if (hasStoredData) {
           // Parse token data and extract JWT token
           let token: string;
           try {
@@ -302,6 +344,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               localStorage.removeItem('auth_token');
               localStorage.removeItem('user');
               localStorage.removeItem('tenant');
+            }
+          }
+        } else if (isOAuthCallbackRoute) {
+          // No localStorage data found, check for OAuth cookie authentication
+          // This handles the case where OAuth callback has completed but AuthContext hasn't updated yet
+          try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/user`, {
+              method: 'GET',
+              credentials: 'include',
+              signal: abortController.signal,
+            });
+
+            if (response.ok) {
+              const authData = (await response.json()) as AuthResponse;
+
+              if (authData.success && authData.user && authData.tenant && authData.token) {
+                // Validate the JWT token before storing
+                const tokenValidation = verifyToken(authData.token);
+
+                if (tokenValidation.isOk() && isMountedRef.current && !abortController.signal.aborted) {
+                  // Validate user and tenant data before storing and setting
+                  if (validateUser(authData.user) && validateTenant(authData.tenant)) {
+                    // Store in localStorage for future use and update context
+                    localStorage.setItem('auth_token', JSON.stringify({ token: authData.token }));
+                    localStorage.setItem('user', JSON.stringify(authData.user));
+                    localStorage.setItem('tenant', JSON.stringify(authData.tenant));
+
+                    setUser(authData.user);
+                    setTenant(authData.tenant);
+                  } else {
+                    // Validation failed - clear any existing auth data and log error
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('tenant');
+                    if (import.meta.env.DEV) {
+                      console.error('AuthContext: OAuth user/tenant validation failed');
+                    }
+                  }
+                }
+                // If token is invalid or aborted, skip storing and handling
+              }
+            }
+          } catch (oauthCheckError) {
+            // OAuth check failed, continue with unauthenticated state
+            if (import.meta.env.DEV) {
+              console.debug('OAuth cookie check failed:', oauthCheckError);
             }
           }
         }

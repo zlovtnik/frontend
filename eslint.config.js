@@ -12,7 +12,7 @@ import { dirname } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage', '*.config.ts', 'happydom.ts', 'loadenv.ts'] },
+  { ignores: ['dist', 'node_modules', 'coverage', '*.config.ts', 'happydom.ts', 'loadenv.ts', 'vite.config.minimal.ts'] },
   {
     extends: [
       js.configs.recommended,
@@ -119,6 +119,14 @@ export default tseslint.config(
       
       // Prettier integration
       'prettier/prettier': 'error',
+    },
+  },
+  {
+    files: ['**/__tests__/**'],
+    rules: {
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/prefer-optional-chain': 'off',
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
     },
   }
 );

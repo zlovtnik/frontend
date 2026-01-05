@@ -52,22 +52,18 @@ if (import.meta.env.DEV) {
       // But log other errors to aid debugging
       if (error instanceof Error) {
         // Check for module not found errors (expected case)
-        const errorWithCode = error as NodeJS.ErrnoException;
-        if (errorWithCode.code === 'MODULE_NOT_FOUND' || error.message.includes('Cannot find module')) {
+        if (
+          (error as any)?.code === 'MODULE_NOT_FOUND' ||
+          error.message.includes('Cannot find module')
+        ) {
           // Expected error - why-did-you-render not installed, silently continue
           return;
         }
         // Log unexpected errors to help developers debug configuration issues
-        if (!import.meta.env.PROD) {
-          // eslint-disable-next-line no-console
-          console.warn('[whyDidYouRender] Failed to initialize:', error.message);
-        }
+        console.warn('[whyDidYouRender] Failed to initialize:', error.message);
       } else {
         // Handle non-Error objects thrown
-        if (!import.meta.env.PROD) {
-          // eslint-disable-next-line no-console
-          console.warn('[whyDidYouRender] Failed to initialize with unexpected error:', error);
-        }
+        console.warn('[whyDidYouRender] Failed to initialize with unexpected error:', error);
       }
     }
   })();

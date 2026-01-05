@@ -71,38 +71,81 @@ export function useKeycloakAuth() {
    * 4. Setting secure HttpOnly cookies with tokens
    *
    * This function retrieves any stored authentication state from the callback
+   * and ensures the authentication context is properly updated.
    */
   const handleKeycloakCallback = useCallback(async (): Promise<AuthResponse | null> => {
     try {
       setAuthState({ isLoading: true, error: null, isCallback: true });
 
-      // Check if we have token in storage (backend may have set it)
-      const storedAuthResult = getAuthToken();
-      if (storedAuthResult.isOk()) {
-        const storedAuth = storedAuthResult.value;
-        if (storedAuth?.token) {
-          // Token exists in storage, but we still need full AuthResponse from backend
-          // Continue to fetch user info below
+      // Attempt to fetch auth state from backend with retry logic
+      // Backend should set secure HttpOnly cookie with tokens
+      let authData: unknown = null;
+      let attempt = 0;
+      const maxAttempts = 3;
+      const baseDelay = 1000; // 1 second base delay
+
+      while (attempt < maxAttempts && !authData) {
+        try {
+          const response = await fetch(`${env.apiUrl}/auth/user`, {
+            method: 'GET',
+            credentials: 'include', // Include cookies
+          });
+
+          if (response.ok) {
+            authData = (await response.json()) as unknown;
+
+            // Validate complete auth response shape
+            if (
+              authData &&
+              typeof authData === 'object' &&
+              'success' in authData &&
+              'token' in authData &&
+              'refreshToken' in authData &&
+              'user' in authData &&
+              'expiresIn' in authData &&
+              typeof (authData as AuthResponse).success === 'boolean' &&
+              typeof (authData as AuthResponse).token === 'string' &&
+              typeof (authData as AuthResponse).refreshToken === 'string' &&
+              typeof (authData as AuthResponse).expiresIn === 'number'
+            ) {
+              break; // Success, exit retry loop
+            } else {
+              throw new Error('Invalid auth response: missing required fields');
+            }
+          } else if (response.status === 401 || response.status === 403) {
+            // Authentication failed, don't retry
+            throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+          } else if (attempt < maxAttempts - 1) {
+            // Retry for other errors with exponential backoff
+            attempt++;
+            const delay = baseDelay * Math.pow(2, attempt - 1);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            throw new Error(
+              `Failed to fetch user info after OAuth callback: ${response.status} ${response.statusText}`
+            );
+          }
+        } catch (fetchError) {
+          if (
+            attempt < maxAttempts - 1 &&
+            !(fetchError instanceof Error && fetchError.message.includes('Authentication failed'))
+          ) {
+            attempt++;
+            const delay = baseDelay * Math.pow(2, attempt - 1);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            throw fetchError;
+          }
         }
       }
 
-      // Attempt to fetch auth state from backend
-      // Backend should set secure HttpOnly cookie with tokens
-      const response = await fetch(`${env.apiUrl}/auth/user`, {
-        method: 'GET',
-        credentials: 'include', // Include cookies
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch user info after OAuth callback: ${response.statusText}`
-        );
-      }
-
-      const authData = await response.json() as unknown;
-
       // Store the auth data if we got a token
-      if (authData && typeof authData === 'object' && 'token' in authData && typeof (authData as { token?: unknown }).token === 'string') {
+      if (
+        authData &&
+        typeof authData === 'object' &&
+        'token' in authData &&
+        typeof (authData as { token?: unknown }).token === 'string'
+      ) {
         const token = (authData as { token: string }).token;
         const setTokenResult = setAuthToken(token);
         if (setTokenResult.isErr()) {

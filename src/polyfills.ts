@@ -1,6 +1,6 @@
 // Polyfill for process object in browser environment
 // Define immediately to ensure it's available before any other code runs
-(function() {
+(function () {
   if (typeof globalThis.process === 'undefined') {
     globalThis.process = {
       env: {},
@@ -9,7 +9,7 @@
       browser: true,
       versions: {},
       cwd: () => '/',
-      nextTick: (fn) => setTimeout(fn, 0),
+      nextTick: fn => setTimeout(fn, 0),
     };
   }
 

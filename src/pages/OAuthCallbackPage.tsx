@@ -58,33 +58,43 @@ export const OAuthCallbackPage: React.FC = () => {
         // Process OAuth callback
         const authResponse = await handleKeycloakCallback();
 
+        // If handleKeycloakCallback returned null but there's no error,
+        // it might just mean the backend didn't return user data in the response
+        // (which is expected since it sets cookies instead)
         if (!authResponse && keycloakError) {
           setCallbackError(keycloakError.message || 'Failed to process callback');
           setIsProcessing(false);
           return;
         }
 
-        // Wait for auth state to update
-        if (isAuthenticated) {
-          // Redirect to dashboard or intended location
-          const from = (location.state as { from?: { pathname: string } })?.from?.pathname ||
-            '/dashboard' || '/';
-          navigate(from, { replace: true });
-        } else {
-          // Give auth context a moment to update
-          setTimeout(() => {
-            if (isAuthenticated) {
-              navigate('/dashboard', { replace: true });
-            } else {
-              setCallbackError('Authentication failed: Unable to verify identity');
-              setIsProcessing(false);
-            }
-          }, 1000);
-        }
+        // Implement retry logic for authentication state update
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retryDelay = 500; // 500ms between retries
+
+        const checkAuthState = () => {
+          if (isAuthenticated) {
+            // Success - redirect to dashboard or intended location
+            const from =
+              (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+            navigate(from, { replace: true });
+            return true;
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(checkAuthState, retryDelay);
+            return false;
+          } else {
+            // Max retries reached - authentication failed
+            setCallbackError('Authentication failed: Unable to verify identity');
+            setIsProcessing(false);
+            return false;
+          }
+        };
+
+        // Start checking auth state with retries
+        checkAuthState();
       } catch (error) {
-        setCallbackError(
-          error instanceof Error ? error.message : 'An unexpected error occurred'
-        );
+        setCallbackError(error instanceof Error ? error.message : 'An unexpected error occurred');
         setIsProcessing(false);
       }
     };
@@ -157,7 +167,8 @@ export const OAuthCallbackPage: React.FC = () => {
             />
 
             <Typography.Paragraph>
-              There was a problem completing your authentication with Keycloak. This could be due to:
+              There was a problem completing your authentication with Keycloak. This could be due
+              to:
             </Typography.Paragraph>
 
             <ul>
@@ -176,7 +187,11 @@ export const OAuthCallbackPage: React.FC = () => {
               >
                 Return to Login
               </Button>
-              <Button onClick={() => window.location.reload()}>
+              <Button
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
                 Try Again
               </Button>
             </Space>
