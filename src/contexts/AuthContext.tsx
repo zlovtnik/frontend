@@ -147,18 +147,7 @@ const attemptTokenRefresh = async (
     if (!refreshedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        if (
-          parsedUser &&
-          typeof parsedUser === 'object' &&
-          typeof parsedUser.id === 'string' &&
-          parsedUser.id.trim() !== '' &&
-          typeof parsedUser.email === 'string' &&
-          parsedUser.email.trim() !== '' &&
-          typeof parsedUser.username === 'string' &&
-          parsedUser.username.trim() !== '' &&
-          Array.isArray(parsedUser.roles) &&
-          parsedUser.roles.every((role: unknown) => typeof role === 'string')
-        ) {
+        if (validateUser(parsedUser)) {
           refreshedUser = {
             ...parsedUser,
             id: asUserId(newPayload.user),
@@ -176,16 +165,7 @@ const attemptTokenRefresh = async (
     if (!refreshedTenant) {
       try {
         const parsedTenant = JSON.parse(storedTenant);
-        if (
-          parsedTenant &&
-          typeof parsedTenant === 'object' &&
-          typeof parsedTenant.id === 'string' &&
-          parsedTenant.id.trim() !== '' &&
-          typeof parsedTenant.name === 'string' &&
-          parsedTenant.name.trim() !== '' &&
-          typeof parsedTenant.settings === 'object' &&
-          parsedTenant.settings !== null
-        ) {
+        if (validateTenant(parsedTenant)) {
           refreshedTenant = {
             ...parsedTenant,
             id: asTenantId(newPayload.tenant_id),
@@ -245,11 +225,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Also check for OAuth cookie-based authentication
         const hasStoredData = storedTokenData && storedUser && storedTenant;
-        const isOAuthCallbackRoute = window.location.pathname === '/auth/callback';
+        // Use endsWith to support apps served from subpaths (e.g., /myapp/auth/callback)
+        const isOAuthCallbackRoute = globalThis.location.pathname.endsWith('/auth/callback');
 
         if (import.meta.env.DEV) {
           console.log('AuthContext init:', {
-            pathname: window.location.pathname,
+            pathname: globalThis.location.pathname,
             hasStoredData,
             isOAuthCallbackRoute,
           });
@@ -284,12 +265,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               abortController.signal
             );
             if (result && !abortController.signal.aborted) {
-              if (!abortController.signal.aborted) {
-                localStorage.setItem('auth_token', JSON.stringify({ token: result.token }));
-                localStorage.setItem('user', JSON.stringify(result.user));
-                localStorage.setItem('tenant', JSON.stringify(result.tenant));
-              }
-              if (isMountedRef.current && !abortController.signal.aborted) {
+              // Write to localStorage first
+              localStorage.setItem('auth_token', JSON.stringify({ token: result.token }));
+              localStorage.setItem('user', JSON.stringify(result.user));
+              localStorage.setItem('tenant', JSON.stringify(result.tenant));
+              // Only update state if component is still mounted
+              if (isMountedRef.current) {
                 setUser(result.user);
                 setTenant(result.tenant);
               }
@@ -349,8 +330,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (isOAuthCallbackRoute) {
           // No localStorage data found, check for OAuth cookie authentication
           // This handles the case where OAuth callback has completed but AuthContext hasn't updated yet
+          const apiUrl = import.meta.env.VITE_API_URL;
+          if (!apiUrl || typeof apiUrl !== 'string') {
+            console.error('AuthContext: VITE_API_URL is not configured. Skipping OAuth user fetch.');
+            return;
+          }
           try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/user`, {
+            const response = await fetch(`${apiUrl}/auth/user`, {
               method: 'GET',
               credentials: 'include',
               signal: abortController.signal,
@@ -365,7 +351,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
                 if (tokenValidation.isOk() && isMountedRef.current && !abortController.signal.aborted) {
                   // Validate user and tenant data before storing and setting
-                  if (validateUser(authData.user) && validateTenant(authData.tenant)) {
+                  const isUserValid = validateUser(authData.user);
+                  const isTenantValid = validateTenant(authData.tenant);
+                  
+                  if (isUserValid && isTenantValid) {
                     // Store in localStorage for future use and update context
                     localStorage.setItem('auth_token', JSON.stringify({ token: authData.token }));
                     localStorage.setItem('user', JSON.stringify(authData.user));
@@ -379,9 +368,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     localStorage.removeItem('user');
                     localStorage.removeItem('tenant');
                     if (import.meta.env.DEV) {
-                      console.error('AuthContext: OAuth user/tenant validation failed');
+                      console.error('AuthContext: OAuth validation failed', {
+                        userValidationPassed: isUserValid,
+                        tenantValidationPassed: isTenantValid,
+                      });
                     }
                   }
+                } else if (import.meta.env.DEV && tokenValidation.isErr()) {
+                  console.error('AuthContext: Token validation failed', {
+                    error: tokenValidation.error,
+                  });
                 }
                 // If token is invalid or aborted, skip storing and handling
               }
@@ -415,7 +411,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  const login = async (credentials: LoginCredentials): Promise<void> => {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
     try {
       // Use "tenant1" for demo purposes, as hardcoded in backend when tenant is missing
@@ -482,7 +478,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     try {
@@ -559,7 +555,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [logout]);
 
-  const register = async (data: RegisterData): Promise<void> => {
+  const register = useCallback(async (data: RegisterData): Promise<void> => {
     setIsLoading(true);
     try {
       const registerResult = await authService.register(data);
@@ -623,9 +619,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const requestPasswordReset = async (
+  const requestPasswordReset = useCallback(async (
     email: string
   ): Promise<{ isSuccess: boolean; message: string }> => {
     setIsLoading(true);
@@ -661,9 +657,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const confirmPasswordReset = async (
+  const confirmPasswordReset = useCallback(async (
     data: PasswordResetConfirm
   ): Promise<{ isSuccess: boolean; message: string }> => {
     setIsLoading(true);
@@ -699,7 +695,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const value = useMemo<AuthContextType>(
     () => ({

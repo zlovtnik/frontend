@@ -124,9 +124,11 @@ export default tseslint.config(
   {
     files: ['**/__tests__/**'],
     rules: {
+      // Allow empty functions in tests (common for mocks/stubs)
       '@typescript-eslint/no-empty-function': 'off',
-      '@typescript-eslint/prefer-optional-chain': 'off',
-      '@typescript-eslint/no-redundant-type-constituents': 'off',
+      // Keep these rules enabled for tests - they improve code quality
+      // '@typescript-eslint/prefer-optional-chain': 'error',
+      // '@typescript-eslint/no-redundant-type-constituents': 'error',
     },
   }
 );

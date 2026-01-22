@@ -1,7 +1,7 @@
 // Polyfill for process object in browser environment
 // Define immediately to ensure it's available before any other code runs
 (function () {
-  if (typeof globalThis.process === 'undefined') {
+  if (globalThis.process === undefined) {
     globalThis.process = {
       env: {},
       version: '1.0.0',
@@ -9,12 +9,17 @@
       browser: true,
       versions: {},
       cwd: () => '/',
-      nextTick: fn => setTimeout(fn, 0),
+      nextTick: (fn: unknown) => {
+        if (typeof fn !== 'function') {
+          throw new TypeError('nextTick argument must be a function');
+        }
+        setTimeout(fn, 0);
+      },
     };
   }
 
   // Also define on window for compatibility
-  if (typeof window !== 'undefined' && typeof window.process === 'undefined') {
-    window.process = globalThis.process;
+  if (globalThis.window !== undefined && globalThis.window.process === undefined) {
+    globalThis.window.process = globalThis.process;
   }
 })();

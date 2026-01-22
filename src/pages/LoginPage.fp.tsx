@@ -90,7 +90,9 @@ const isLocationState = (state: unknown): state is LocationState => {
 export const LoginPageFP: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const { initiateKeycloakLogin, isLoading: keycloakLoading } = useKeycloakAuth();
-  const env = getEnv();
+  // Memoize env to avoid creating a new object reference on every render
+  // getEnv() returns static config that doesn't change during runtime
+  const env = useMemo(() => getEnv(), []);
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = isLocationState(location.state) ? location.state : null;
@@ -318,7 +320,11 @@ export const LoginPageFP: React.FC = () => {
                     try {
                       await initiateKeycloakLogin();
                     } catch (error) {
-                      console.error('Keycloak login failed:', error);
+                      // Only log sanitized error in development
+                      if (import.meta.env.DEV) {
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                        console.error('Keycloak login failed:', errorMessage);
+                      }
                       setSubmissionError('Failed to initiate Keycloak login. Please try again.');
                     }
                   }}

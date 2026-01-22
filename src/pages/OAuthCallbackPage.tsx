@@ -12,10 +12,9 @@
  * URL: /auth/callback
  */
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useKeycloakAuth } from '@/hooks/useKeycloakAuth';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, Spin, Typography, Alert, Button, Space, Flex } from '@/components/AntdComponents';
 
 /**
@@ -30,14 +29,23 @@ import { Card, Spin, Typography, Alert, Button, Space, Flex } from '@/components
  * This page retrieves user info and redirects to dashboard.
  */
 export const OAuthCallbackPage: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { handleKeycloakCallback, error: keycloakError, isLoading } = useKeycloakAuth();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { handleKeycloakCallback, error: keycloakError } = useKeycloakAuth();
   const [callbackError, setCallbackError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
+  
+  // Ref to track if we've already processed the callback
+  const hasProcessedRef = useRef(false);
 
+  // Process the OAuth callback once
   useEffect(() => {
+    // Prevent multiple executions - set synchronously before any async work
+    if (hasProcessedRef.current) {
+      return;
+    }
+    // Mark as processed immediately to prevent double-processing in Strict Mode
+    hasProcessedRef.current = true;
+
     const processCallback = async () => {
       try {
         setIsProcessing(true);
@@ -46,11 +54,17 @@ export const OAuthCallbackPage: React.FC = () => {
         const params = new URLSearchParams(location.search);
         const error = params.get('error');
         const errorDescription = params.get('error_description');
+        const code = params.get('code');
 
         if (error) {
-          setCallbackError(
-            `OAuth Error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`
-          );
+          const errorMsg = errorDescription ? `OAuth Error: ${error} - ${errorDescription}` : `OAuth Error: ${error}`;
+          setCallbackError(errorMsg);
+          setIsProcessing(false);
+          return;
+        }
+
+        if (!code) {
+          setCallbackError('No authorization code found in callback URL');
           setIsProcessing(false);
           return;
         }
@@ -58,41 +72,21 @@ export const OAuthCallbackPage: React.FC = () => {
         // Process OAuth callback
         const authResponse = await handleKeycloakCallback();
 
-        // If handleKeycloakCallback returned null but there's no error,
-        // it might just mean the backend didn't return user data in the response
-        // (which is expected since it sets cookies instead)
-        if (!authResponse && keycloakError) {
-          setCallbackError(keycloakError.message || 'Failed to process callback');
+        if (!authResponse) {
+          setCallbackError('Failed to process authentication callback');
           setIsProcessing(false);
           return;
         }
 
-        // Implement retry logic for authentication state update
-        let retryCount = 0;
-        const maxRetries = 5;
-        const retryDelay = 500; // 500ms between retries
-
-        const checkAuthState = () => {
-          if (isAuthenticated) {
-            // Success - redirect to dashboard or intended location
-            const from =
-              (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
-            navigate(from, { replace: true });
-            return true;
-          } else if (retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(checkAuthState, retryDelay);
-            return false;
-          } else {
-            // Max retries reached - authentication failed
-            setCallbackError('Authentication failed: Unable to verify identity');
-            setIsProcessing(false);
-            return false;
-          }
-        };
-
-        // Start checking auth state with retries
-        checkAuthState();
+        // Success - AuthContext will pick up the stored data on reload
+        // localStorage writes are synchronous, so we can navigate immediately
+        setIsProcessing(false);
+        
+        const from =
+          (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+        // Use location.replace for a full reload to ensure AuthContext picks up new data
+        // without adding to browser history (prevents back button issues)
+        globalThis.location.replace(from);
       } catch (error) {
         setCallbackError(error instanceof Error ? error.message : 'An unexpected error occurred');
         setIsProcessing(false);
@@ -100,10 +94,19 @@ export const OAuthCallbackPage: React.FC = () => {
     };
 
     processCallback();
-  }, [handleKeycloakCallback, keycloakError, isAuthenticated, navigate, location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally omitting location.search, handleKeycloakCallback to run once on mount only
+  }, []);
+
+  // Handle keycloak errors
+  useEffect(() => {
+    if (keycloakError && !callbackError) {
+      setCallbackError(keycloakError.message || 'Failed to process callback');
+      setIsProcessing(false);
+    }
+  }, [keycloakError, callbackError]);
 
   // Show loading state while processing
-  if (isProcessing || isLoading || authLoading) {
+  if (isProcessing) {
     return (
       <Flex
         justify="center"
@@ -182,14 +185,14 @@ export const OAuthCallbackPage: React.FC = () => {
               <Button
                 type="primary"
                 onClick={() => {
-                  navigate('/login', { replace: true });
+                  globalThis.location.href = '/login';
                 }}
               >
                 Return to Login
               </Button>
               <Button
                 onClick={() => {
-                  window.location.reload();
+                  globalThis.location.reload();
                 }}
               >
                 Try Again

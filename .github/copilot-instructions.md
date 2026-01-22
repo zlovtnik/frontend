@@ -3,6 +3,7 @@
 ## Architecture Snapshot
 - Entry stack lives in `src/main.tsx` (theme + providers) and `src/App.tsx` (lazy routes + `EnvironmentErrorUI` fallback); every page is lazy-loaded and wrapped by `Layout` + `PrivateRoute` for authenticated flows.
 - Keep the clean layering: pure business logic in `src/domain/**` (including `rules/` for business rules), async/IO inside `src/services/api.ts`, async orchestration in hooks like `src/hooks/useApiCall.ts`, data transformation in `src/transformers/`, and presentation inside `src/components`/`src/pages`.
+- Data transformers (`src/transformers/`) enforce separation of concerns by keeping DTO conversions, normalization, formatting, and mapping logic out of domain and components. Place transformer functions here for: API response → domain model conversions, domain → view model mappings, date/currency formatting pipelines, and data normalization (e.g., trimming, casing). Import transformers in hooks or services—never directly in components.
 - All cross-layer data travels as `Result`/`ResultAsync` from `neverthrow`; compose with `.match`, `.andThen`, and `ts-pattern` instead of `try/catch`.
 - Validation uses Zod schemas in `src/validation/` for runtime type safety.
 - Path aliases (`@/…`) are configured in `tsconfig.json`; new modules should respect this structure to avoid brittle relative imports.
@@ -12,7 +13,6 @@
 - Add env values to `.env(.local|.development|.production)` and read them through `src/config/env.ts#getEnv()`; rendering fails into `EnvironmentErrorUI` until validation passes.
 - Asset checks live in `scripts/analyze-assets.js` and `scripts/verify-optimization.js`; trigger via `bun run build:analyze` when touching Vite config, Tailwind, or large media.
 - Tests preload `loadenv.ts` (syncs `process.env` and `import.meta.env`) so new test helpers should rely on `getEnvVar` rather than poking globals directly.
-- Password dictionaries preload in `main.tsx` via `preloadCommonPasswords()` from `domain/rules/authRules` to avoid delaying first paint.
 
 ## Service & Auth Patterns
 - `src/services/api.ts` exposes the shared HttpClient (retry, exponential backoff, circuit breaker, tenant header, schema validation); always add endpoints here and return `AsyncResult`.
@@ -26,7 +26,6 @@
 - Skeletons (`PageSkeleton`, `CardSkeletonGrid`, `TableSkeleton`) and `LazyImage`/`ResponsiveImage` provide the expected loading UX—reuse them instead of bespoke spinners.
 - `main.tsx` preloads password dictionaries via `preloadCommonPasswords()` from `domain/rules/authRules`; if you add new blocking async work, defer with `setTimeout` like the existing preload to avoid delaying first paint.
 - Performance knobs are centralized in `vite.config.ts` (manualChunks, `VitePWA`, `viteImagemin`, `assetsInlineLimit`) plus runtime caching definitions in `src/config/cacheStrategies.ts`; update both when touching bundling/service-worker behavior.
-- Data transformation pipelines in `src/transformers/` handle DTO conversions and formatting.
 
 ## Testing Playbook
 - Default test target is Bun: `bun test` (all), `bun test:watch`, `bun test:coverage`, `bun test:ui` (forces Happy DOM). Coverage thresholds live in `src/test-utils/README.md`.

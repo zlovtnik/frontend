@@ -13,6 +13,23 @@
  * Alternative: Use React DevTools Profiler for performance analysis
  */
 
+/**
+ * Type guard to safely check if an error has a specific error code property.
+ * Handles various error object shapes from dynamic imports and module systems.
+ *
+ * @param err - Unknown error value to check
+ * @param code - The error code to match (e.g., 'MODULE_NOT_FOUND')
+ * @returns true if err is an object with a 'code' property matching the given code
+ */
+function hasErrorCode(err: unknown, code: string): boolean {
+  return (
+    err !== null &&
+    typeof err === 'object' &&
+    'code' in err &&
+    (err as { code: unknown }).code === code
+  );
+}
+
 if (import.meta.env.DEV) {
   // Attempt to load why-did-you-render if available
   // This is optional and won't break if the package isn't installed
@@ -53,7 +70,7 @@ if (import.meta.env.DEV) {
       if (error instanceof Error) {
         // Check for module not found errors (expected case)
         if (
-          (error as any)?.code === 'MODULE_NOT_FOUND' ||
+          hasErrorCode(error, 'MODULE_NOT_FOUND') ||
           error.message.includes('Cannot find module')
         ) {
           // Expected error - why-did-you-render not installed, silently continue
