@@ -14,6 +14,11 @@ interface EnvConfig {
   isProduction: boolean;
   defaultCountry: string;
   enablePwnedPasswordCheck: boolean;
+  // Keycloak OAuth2 Configuration
+  keycloakIssuerUrl: string;
+  keycloakClientId: string;
+  keycloakRedirectUrl: string;
+  useKeycloakOAuth: boolean;
 }
 
 class EnvironmentError extends Error {
@@ -79,6 +84,32 @@ export function getEnvConfig(): EnvConfig {
         import.meta.env.MODE === 'production' ? 'true' : 'false'
       ).toLowerCase() === 'true';
 
+    // Keycloak OAuth2 Configuration
+    const useKeycloakOAuth =
+      getOptionalEnv('VITE_USE_KEYCLOAK_OAUTH', 'false').toLowerCase() === 'true';
+
+    let keycloakIssuerUrl: string;
+    let keycloakClientId: string;
+    let keycloakRedirectUrl: string;
+
+    if (useKeycloakOAuth) {
+      keycloakIssuerUrl = getRequiredEnv('VITE_KEYCLOAK_ISSUER_URL');
+      keycloakClientId = getRequiredEnv('VITE_KEYCLOAK_CLIENT_ID');
+      keycloakRedirectUrl = getRequiredEnv('VITE_KEYCLOAK_REDIRECT_URL');
+    } else {
+      keycloakIssuerUrl = getOptionalEnv('VITE_KEYCLOAK_ISSUER_URL', '');
+      keycloakClientId = getOptionalEnv('VITE_KEYCLOAK_CLIENT_ID', '');
+      keycloakRedirectUrl = getOptionalEnv('VITE_KEYCLOAK_REDIRECT_URL', '');
+    }
+
+    // Validate URLs when present
+    if (keycloakIssuerUrl) {
+      validateUrl(keycloakIssuerUrl, 'VITE_KEYCLOAK_ISSUER_URL');
+    }
+    if (keycloakRedirectUrl) {
+      validateUrl(keycloakRedirectUrl, 'VITE_KEYCLOAK_REDIRECT_URL');
+    }
+
     return {
       apiUrl,
       appName: getOptionalEnv('VITE_APP_NAME', 'Actix Web REST API'),
@@ -88,6 +119,10 @@ export function getEnvConfig(): EnvConfig {
       isProduction: import.meta.env.MODE === 'production',
       defaultCountry,
       enablePwnedPasswordCheck,
+      keycloakIssuerUrl,
+      keycloakClientId,
+      keycloakRedirectUrl,
+      useKeycloakOAuth,
     };
   } catch (error) {
     if (error instanceof EnvironmentError) {

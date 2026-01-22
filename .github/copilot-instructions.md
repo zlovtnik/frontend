@@ -2,8 +2,10 @@
 
 ## Architecture Snapshot
 - Entry stack lives in `src/main.tsx` (theme + providers) and `src/App.tsx` (lazy routes + `EnvironmentErrorUI` fallback); every page is lazy-loaded and wrapped by `Layout` + `PrivateRoute` for authenticated flows.
-- Keep the clean layering: pure business logic in `src/domain/**`, async/IO inside `src/services/api.ts`, async orchestration in hooks like `src/hooks/useApiCall.ts`, and presentation inside `src/components`/`src/pages`.
+- Keep the clean layering: pure business logic in `src/domain/**` (including `rules/` for business rules), async/IO inside `src/services/api.ts`, async orchestration in hooks like `src/hooks/useApiCall.ts`, data transformation in `src/transformers/`, and presentation inside `src/components`/`src/pages`.
+- Data transformers (`src/transformers/`) enforce separation of concerns by keeping DTO conversions, normalization, formatting, and mapping logic out of domain and components. Place transformer functions here for: API response → domain model conversions, domain → view model mappings, date/currency formatting pipelines, and data normalization (e.g., trimming, casing). Import transformers in hooks or services—never directly in components.
 - All cross-layer data travels as `Result`/`ResultAsync` from `neverthrow`; compose with `.match`, `.andThen`, and `ts-pattern` instead of `try/catch`.
+- Validation uses Zod schemas in `src/validation/` for runtime type safety.
 - Path aliases (`@/…`) are configured in `tsconfig.json`; new modules should respect this structure to avoid brittle relative imports.
 
 ## Build & Env Workflow
@@ -15,6 +17,7 @@
 ## Service & Auth Patterns
 - `src/services/api.ts` exposes the shared HttpClient (retry, exponential backoff, circuit breaker, tenant header, schema validation); always add endpoints here and return `AsyncResult`.
 - JWT/session management lives in `src/contexts/AuthContext.tsx`; tokens, tenant, and user are JSON-wrapped in localStorage, and refresh flows must call `attemptTokenRefresh` to keep `X-Tenant-ID` in sync.
+- Keycloak OAuth2 integration for enterprise authentication; configure via `src/config/env.ts` with `keycloakIssuerUrl`, `keycloakClientId`, `keycloakRedirectUrl`, and `useKeycloakOAuth`; backend handles token exchange while frontend manages redirects and state validation.
 - Feature flags (`src/config/featureFlags.ts`) let us dogfood FP rewrites—check `getFeatureFlags()` before flipping behavior and persist overrides via `updateFeatureFlags`.
 - Storage access must go through `StorageService` and branded ID helpers (e.g., `asTenantId` in `src/types/ids.ts`) to keep multi-tenant isolation guarantees.
 

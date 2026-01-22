@@ -12,6 +12,8 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useKeycloakAuth } from '@/hooks/useKeycloakAuth';
+import { getEnv } from '@/config/env';
 import type { LoginCredentials } from '@/types/auth';
 import type { AuthFlowError } from '@/types/errors';
 import { formatAuthFlowError } from '@/types/errors';
@@ -87,6 +89,10 @@ const isLocationState = (state: unknown): state is LocationState => {
  */
 export const LoginPageFP: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { initiateKeycloakLogin, isLoading: keycloakLoading } = useKeycloakAuth();
+  // Memoize env to avoid creating a new object reference on every render
+  // getEnv() returns static config that doesn't change during runtime
+  const env = useMemo(() => getEnv(), []);
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = isLocationState(location.state) ? location.state : null;
@@ -302,6 +308,31 @@ export const LoginPageFP: React.FC = () => {
               >
                 {isSubmitting ? 'Validating…' : authLoading ? 'Signing In…' : 'Sign In'}
               </Button>
+
+              {env.useKeycloakOAuth && (
+                <Button
+                  type="default"
+                  htmlType="button"
+                  block
+                  loading={keycloakLoading}
+                  disabled={keycloakLoading || isFormLoading}
+                  onClick={async () => {
+                    try {
+                      await initiateKeycloakLogin();
+                    } catch (error) {
+                      // Only log sanitized error in development
+                      if (import.meta.env.DEV) {
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                        console.error('Keycloak login failed:', errorMessage);
+                      }
+                      setSubmissionError('Failed to initiate Keycloak login. Please try again.');
+                    }
+                  }}
+                  className="mt-4"
+                >
+                  {keycloakLoading ? 'Redirecting to Keycloak…' : 'Sign In with Keycloak'}
+                </Button>
+              )}
             </Space>
           </form>
         </FormProvider>

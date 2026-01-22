@@ -1,6 +1,12 @@
 import React, { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { Space, Typography, Button, EditOutlined, DeleteOutlined } from '@/components/AntdComponents';
+import {
+  Space,
+  Typography,
+  Button,
+  EditOutlined,
+  DeleteOutlined,
+} from '@/components/AntdComponents';
 import type { Contact } from '@/types/contact';
 
 interface VirtualizedContactListProps {
@@ -31,15 +37,7 @@ interface RowData {
 }
 
 const Row = memo(
-  ({
-    index,
-    style,
-    data,
-  }: {
-    index: number;
-    style: React.CSSProperties;
-    data: RowData;
-  }) => {
+  ({ index, style, data }: { index: number; style: React.CSSProperties; data: RowData }) => {
     const contact = data.contacts[index];
     if (!contact) return null;
 
@@ -98,7 +96,8 @@ const Row = memo(
       prevProps.data.onEdit === nextProps.data.onEdit &&
       prevProps.data.onDelete === nextProps.data.onDelete &&
       prevProps.data.isLoading === nextProps.data.isLoading &&
-      prevProps.data.contacts[prevProps.index]?.id === nextProps.data.contacts[nextProps.index]?.id &&
+      prevProps.data.contacts[prevProps.index]?.id ===
+        nextProps.data.contacts[nextProps.index]?.id &&
       prevProps.data.contacts[prevProps.index]?.updatedAt ===
         nextProps.data.contacts[nextProps.index]?.updatedAt
     );
@@ -135,7 +134,13 @@ const VirtualizedContactListComponent: React.FC<VirtualizedContactListProps> = (
   }
 
   return (
-    <List height={height} itemCount={contacts.length} itemSize={itemSize} width="100%" itemData={itemData}>
+    <List
+      height={height}
+      itemCount={contacts.length}
+      itemSize={itemSize}
+      width="100%"
+      itemData={itemData}
+    >
       {Row}
     </List>
   );

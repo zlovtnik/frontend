@@ -32,6 +32,9 @@ const RegisterPage = lazy(() =>
 const PasswordResetPage = lazy(() =>
   import('./pages/PasswordResetPage').then(module => ({ default: module.PasswordResetPage }))
 );
+const OAuthCallbackPage = lazy(() =>
+  import('./pages/OAuthCallbackPage').then(module => ({ default: module.OAuthCallbackPage }))
+);
 
 // Validate environment configuration at module load time
 let envError: Error | null = null;
@@ -60,6 +63,7 @@ export const App: React.FC = () => {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<PasswordResetPage />} />
+              <Route path="/auth/callback" element={<OAuthCallbackPage />} />
               <Route
                 path="/dashboard"
                 element={

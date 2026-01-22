@@ -12,7 +12,7 @@ import { dirname } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage', '*.config.ts', 'happydom.ts', 'loadenv.ts'] },
+  { ignores: ['dist', 'node_modules', 'coverage', '*.config.ts', 'happydom.ts', 'loadenv.ts', 'vite.config.minimal.ts'] },
   {
     extends: [
       js.configs.recommended,
@@ -119,6 +119,16 @@ export default tseslint.config(
       
       // Prettier integration
       'prettier/prettier': 'error',
+    },
+  },
+  {
+    files: ['**/__tests__/**'],
+    rules: {
+      // Allow empty functions in tests (common for mocks/stubs)
+      '@typescript-eslint/no-empty-function': 'off',
+      // Keep these rules enabled for tests - they improve code quality
+      // '@typescript-eslint/prefer-optional-chain': 'error',
+      // '@typescript-eslint/no-redundant-type-constituents': 'error',
     },
   }
 );

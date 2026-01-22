@@ -13,6 +13,23 @@
  * Alternative: Use React DevTools Profiler for performance analysis
  */
 
+/**
+ * Type guard to safely check if an error has a specific error code property.
+ * Handles various error object shapes from dynamic imports and module systems.
+ *
+ * @param err - Unknown error value to check
+ * @param code - The error code to match (e.g., 'MODULE_NOT_FOUND')
+ * @returns true if err is an object with a 'code' property matching the given code
+ */
+function hasErrorCode(err: unknown, code: string): boolean {
+  return (
+    err !== null &&
+    typeof err === 'object' &&
+    'code' in err &&
+    (err as { code: unknown }).code === code
+  );
+}
+
 if (import.meta.env.DEV) {
   // Attempt to load why-did-you-render if available
   // This is optional and won't break if the package isn't installed
@@ -52,22 +69,18 @@ if (import.meta.env.DEV) {
       // But log other errors to aid debugging
       if (error instanceof Error) {
         // Check for module not found errors (expected case)
-        const errorWithCode = error as NodeJS.ErrnoException;
-        if (errorWithCode.code === 'MODULE_NOT_FOUND' || error.message.includes('Cannot find module')) {
+        if (
+          hasErrorCode(error, 'MODULE_NOT_FOUND') ||
+          error.message.includes('Cannot find module')
+        ) {
           // Expected error - why-did-you-render not installed, silently continue
           return;
         }
         // Log unexpected errors to help developers debug configuration issues
-        if (!import.meta.env.PROD) {
-          // eslint-disable-next-line no-console
-          console.warn('[whyDidYouRender] Failed to initialize:', error.message);
-        }
+        console.warn('[whyDidYouRender] Failed to initialize:', error.message);
       } else {
         // Handle non-Error objects thrown
-        if (!import.meta.env.PROD) {
-          // eslint-disable-next-line no-console
-          console.warn('[whyDidYouRender] Failed to initialize with unexpected error:', error);
-        }
+        console.warn('[whyDidYouRender] Failed to initialize with unexpected error:', error);
       }
     }
   })();
