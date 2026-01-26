@@ -216,14 +216,6 @@ export const TenantsPage: React.FC = () => {
     return d.isValid() ? d : null;
   };
 
-  // Helper function to convert dayjs object to ISO string
-  // Type guarantee: dayjsObj is Dayjs | null; null case returns empty string,
-  // so the remaining path guarantees dayjsObj is a valid Dayjs instance.
-  const dayjsToIso = (dayjsObj: Dayjs | null): string => {
-    if (!dayjsObj) return '';
-    return dayjsObj.toISOString();
-  };
-
   const updateFilter = (
     index: number,
     key: 'field' | 'operator' | 'value',
@@ -246,18 +238,18 @@ export const TenantsPage: React.FC = () => {
       // If field type changed (date <-> text), clear the value
       const shouldClearValue = isDateFieldValue !== wasDateField;
 
-      // If current operator is not valid for the new field, reset to first valid operator
-      if (!validOperators.includes(currentOperator)) {
+      // If current operator is valid for the new field, keep it; otherwise reset to first valid
+      if (validOperators.includes(currentOperator)) {
         updated[index] = {
           ...currentFilter,
           [key]: value,
-          operator: validOperators[0] ?? 'contains',
           value: shouldClearValue ? '' : currentFilter.value,
         };
       } else {
         updated[index] = {
           ...currentFilter,
           [key]: value,
+          operator: validOperators[0] ?? 'contains',
           value: shouldClearValue ? '' : currentFilter.value,
         };
       }
@@ -285,8 +277,8 @@ export const TenantsPage: React.FC = () => {
         if (isDateField(filter.field)) {
           // Just validate that the value is a valid date string
           const dateValue = new Date(filter.value);
-          if (isNaN(dateValue.getTime())) {
-            throw new Error(`Invalid date format for field ${filter.field}: ${filter.value}`);
+          if (Number.isNaN(dateValue.getTime())) {
+            throw new TypeError(`Invalid date format for field ${filter.field}: ${filter.value}`);
           }
           // Return filter as-is since DatePicker already provides ISO format
           return filter;
@@ -446,6 +438,187 @@ export const TenantsPage: React.FC = () => {
   // For filter validation, add error state for invalid dates
   // Filter errors handled in applyFilters
 
+  // Render content based on loading/empty/data states
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <Card>
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </Card>
+      );
+    }
+
+    if (tenants.length === 0) {
+      return (
+        <Card>
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <Typography.Title level={4}>No Tenants Found</Typography.Title>
+            <Typography.Text type="secondary">
+              Create your first tenant to get started.
+            </Typography.Text>
+            <Button type="primary" onClick={handleNewTenant} style={{ marginTop: 16 }}>
+              Create Tenant
+            </Button>
+          </div>
+        </Card>
+      );
+    }
+
+    return (
+      <>
+        {/* Search Filters */}
+        <Card
+          title="Search Filters"
+          size="small"
+          style={{ borderRadius: '8px', marginTop: '16px' }}
+          data-testid="search-filters-card"
+        >
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            {powerFilters.map((filter, index) => (
+              <div
+                key={filter.id}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}
+                data-testid={`filter-row-${index}`}
+              >
+                <Select
+                  style={{ width: 150 }}
+                  value={filter.field}
+                  onChange={value => {
+                    updateFilter(index, 'field', value);
+                  }}
+                  placeholder="Field"
+                  data-testid={`filter-field-select-${index}`}
+                >
+                  <Select.Option value="id">ID</Select.Option>
+                  <Select.Option value="name">Name</Select.Option>
+                  <Select.Option value="db_url">Database URL</Select.Option>
+                  <Select.Option value="created_at">Created At</Select.Option>
+                  <Select.Option value="updated_at">Updated At</Select.Option>
+                </Select>
+
+                <Select
+                  style={{ width: 120 }}
+                  value={filter.operator}
+                  onChange={value => {
+                    updateFilter(index, 'operator', value);
+                  }}
+                  placeholder="Operator"
+                  data-testid={`filter-operator-select-${index}`}
+                >
+                  {getOperatorsForField(filter.field).map(op => (
+                    <Select.Option key={op} value={op}>
+                      {operatorLabels[op] ?? op}
+                    </Select.Option>
+                  ))}
+                </Select>
+
+                {isDateField(filter.field) ? (
+                  <DatePicker
+                    style={{ width: 200, flex: 1, minWidth: '150px' }}
+                    placeholder="Select date"
+                    showTime
+                    allowClear
+                    value={isoToDayjs(filter.value)}
+                    onChange={date => {
+                      if (date?.isValid()) {
+                        const iso = date.toDate().toISOString();
+                        updateFilter(index, 'value', iso);
+                      } else {
+                        updateFilter(index, 'value', '');
+                      }
+                    }}
+                    data-testid={`filter-value-date-${index}`}
+                  />
+                ) : (
+                  <Input
+                    style={{ width: 200, flex: 1, minWidth: '150px' }}
+                    placeholder="Value"
+                    value={filter.value}
+                    onChange={e => {
+                      updateFilter(index, 'value', e.target.value);
+                    }}
+                    data-testid={`filter-value-input-${index}`}
+                  />
+                )}
+
+                <Button
+                  type="text"
+                  danger
+                  icon={<MinusCircleOutlined />}
+                  onClick={() => {
+                    removeFilter(index);
+                  }}
+                  disabled={powerFilters.length <= 1}
+                  data-testid={`remove-filter-${index}`}
+                >
+                  Remove
+                </Button>
+
+                {index === powerFilters.length - 1 && (
+                  <Button
+                    type="text"
+                    icon={<PlusCircleOutlined />}
+                    onClick={addFilter}
+                    data-testid="add-filter-button"
+                  >
+                    Add Filter
+                  </Button>
+                )}
+              </div>
+            ))}
+
+            <Divider style={{ margin: '8px 0' }} />
+
+            <Space>
+              <Button
+                type="primary"
+                onClick={applyFilters}
+                disabled={loading}
+                data-testid="apply-filters-button"
+              >
+                Apply Filters
+              </Button>
+              <Button
+                onClick={clearFilters}
+                disabled={loading}
+                data-testid="clear-filters-button"
+              >
+                Clear All
+              </Button>
+            </Space>
+
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              <Typography.Text strong>Note:</Typography.Text> Pick a date/time; it's sent as
+              ISO-8601 (UTC). Empty values are ignored.
+            </div>
+          </Space>
+        </Card>
+
+        {/* Tenants Table */}
+        <Card
+          title={`Tenants (${tenants.length})`}
+          style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        >
+          <Table
+            columns={columns}
+            dataSource={tenants}
+            rowKey="id"
+            loading={loading}
+            rowClassName={(_record, index) => (index % 2 === 0 ? 'stripe-row' : '')}
+            pagination={tablePagination}
+            data-testid="tenants-table"
+            locale={{ emptyText: 'No tenants match your search.' }}
+            style={{
+              border: '1px solid #e8e8e8',
+              borderRadius: '8px',
+              overflow: 'hidden',
+            }}
+          />
+        </Card>
+      </>
+    );
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {/* Header - always visible */}
@@ -465,175 +638,7 @@ export const TenantsPage: React.FC = () => {
 
       <Divider />
 
-      {loading ? (
-        <Card>
-          <Skeleton active paragraph={{ rows: 4 }} />
-        </Card>
-      ) : tenants.length === 0 ? (
-        <Card>
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Typography.Title level={4}>No Tenants Found</Typography.Title>
-            <Typography.Text type="secondary">
-              Create your first tenant to get started.
-            </Typography.Text>
-            <Button type="primary" onClick={handleNewTenant} style={{ marginTop: 16 }}>
-              Create Tenant
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <>
-          {/* Search Filters */}
-          <Card
-            title="Search Filters"
-            size="small"
-            style={{ borderRadius: '8px', marginTop: '16px' }}
-            data-testid="search-filters-card"
-          >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-              {powerFilters.map((filter, index) => (
-                <div
-                  key={filter.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}
-                  data-testid={`filter-row-${index}`}
-                >
-                  <Select
-                    style={{ width: 150 }}
-                    value={filter.field}
-                    onChange={value => {
-                      updateFilter(index, 'field', value);
-                    }}
-                    placeholder="Field"
-                    data-testid={`filter-field-select-${index}`}
-                  >
-                    <Select.Option value="id">ID</Select.Option>
-                    <Select.Option value="name">Name</Select.Option>
-                    <Select.Option value="db_url">Database URL</Select.Option>
-                    <Select.Option value="created_at">Created At</Select.Option>
-                    <Select.Option value="updated_at">Updated At</Select.Option>
-                  </Select>
-
-                  <Select
-                    style={{ width: 120 }}
-                    value={filter.operator}
-                    onChange={value => {
-                      updateFilter(index, 'operator', value);
-                    }}
-                    placeholder="Operator"
-                    data-testid={`filter-operator-select-${index}`}
-                  >
-                    {getOperatorsForField(filter.field).map(op => (
-                      <Select.Option key={op} value={op}>
-                        {operatorLabels[op] ?? op}
-                      </Select.Option>
-                    ))}
-                  </Select>
-
-                  {isDateField(filter.field) ? (
-                    <DatePicker
-                      style={{ width: 200, flex: 1, minWidth: '150px' }}
-                      placeholder="Select date"
-                      showTime
-                      allowClear
-                      value={isoToDayjs(filter.value)}
-                      onChange={date => {
-                        if (date && date.isValid()) {
-                          const iso = date.toDate().toISOString();
-                          updateFilter(index, 'value', iso);
-                        } else {
-                          updateFilter(index, 'value', '');
-                        }
-                      }}
-                      data-testid={`filter-value-date-${index}`}
-                    />
-                  ) : (
-                    <Input
-                      style={{ width: 200, flex: 1, minWidth: '150px' }}
-                      placeholder="Value"
-                      value={filter.value}
-                      onChange={e => {
-                        updateFilter(index, 'value', e.target.value);
-                      }}
-                      data-testid={`filter-value-input-${index}`}
-                    />
-                  )}
-
-                  <Button
-                    type="text"
-                    danger
-                    icon={<MinusCircleOutlined />}
-                    onClick={() => {
-                      removeFilter(index);
-                    }}
-                    disabled={powerFilters.length <= 1}
-                    data-testid={`remove-filter-${index}`}
-                  >
-                    Remove
-                  </Button>
-
-                  {index === powerFilters.length - 1 && (
-                    <Button
-                      type="text"
-                      icon={<PlusCircleOutlined />}
-                      onClick={addFilter}
-                      data-testid="add-filter-button"
-                    >
-                      Add Filter
-                    </Button>
-                  )}
-                </div>
-              ))}
-
-              <Divider style={{ margin: '8px 0' }} />
-
-              <Space>
-                <Button
-                  type="primary"
-                  onClick={applyFilters}
-                  disabled={loading}
-                  data-testid="apply-filters-button"
-                >
-                  Apply Filters
-                </Button>
-                <Button
-                  onClick={clearFilters}
-                  disabled={loading}
-                  data-testid="clear-filters-button"
-                >
-                  Clear All
-                </Button>
-              </Space>
-
-              <div style={{ fontSize: '14px', color: '#666' }}>
-                <Typography.Text strong>Note:</Typography.Text> Pick a date/time; it's sent as
-                ISO-8601 (UTC). Empty values are ignored.
-              </div>
-            </Space>
-          </Card>
-
-          {/* Tenants Table */}
-          <Card
-            title={`Tenants (${tenants.length})`}
-            style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-          >
-            <Table
-              columns={columns}
-              dataSource={tenants}
-              rowKey="id"
-              loading={loading}
-              rowClassName={(record, index) => (index % 2 === 0 ? 'stripe-row' : '')}
-              pagination={tablePagination}
-              data-testid="tenants-table"
-              locale={{ emptyText: 'No tenants match your search.' }}
-              style={{
-                border: '1px solid #e8e8e8',
-                borderRadius: '8px',
-                overflow: 'hidden',
-              }}
-            />
-          </Card>
-        </>
-      )}
+      {renderContent()}
     </Space>
   );
 };
