@@ -1,67 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { DynamicFilter, type ActiveFilter, type FilterField } from '@/components/DynamicFilter';
 import type { Tenant as TenantRecord } from '@/types/tenant';
 import { isApiSuccess } from '@/types/api';
 import {
   Button,
-  Input,
   Card,
   Table,
   Space,
   Typography,
   Divider,
-  Select,
   AntdApp,
-  DatePicker,
-  Spin,
   Skeleton,
-} from '@/components/AntdComponents';
-import {
+  Popconfirm,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  PlusCircleOutlined,
-  MinusCircleOutlined,
 } from '@/components/AntdComponents';
 import { tenantService } from '@/services/api';
 
-// Field type constants to avoid duplication
-const TEXT_FIELDS = ['id', 'name', 'db_url'] as const;
-const DATE_FIELDS = ['created_at', 'updated_at'] as const;
-
-const operatorLabels: Record<string, string> = {
-  contains: 'Contains',
-  equals: 'Equals',
-  gt: 'Greater Than',
-  gte: 'Greater or Equal',
-  lt: 'Less Than',
-  lte: 'Less or Equal',
-};
-
-// Power filter type with stable unique id
-type PowerFilter = {
-  id: string;
-  field: string;
-  operator: string;
-  value: string;
-};
-
-// Generate unique filter ID
-const generateFilterId = (): string => `filter-${crypto.randomUUID().slice(0, 8)}`;
+// Define filter fields for tenants
+const TENANT_FILTER_FIELDS: FilterField[] = [
+  { key: 'name', label: 'Name', type: 'text' },
+  { key: 'id', label: 'ID', type: 'text' },
+  { key: 'db_url', label: 'Database URL', type: 'text' },
+  { key: 'created_at', label: 'Created At', type: 'date' },
+  { key: 'updated_at', label: 'Updated At', type: 'date' },
+];
 
 export const TenantsPage: React.FC = () => {
   const navigate = useNavigate();
   const [tenants, setTenants] = useState<TenantRecord[]>([]);
   const { message } = AntdApp.useApp();
 
-  const [deleteTenantId, setDeleteTenantId] = useState<TenantRecord['id'] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [powerFilters, setPowerFilters] = useState<PowerFilter[]>([
-    { id: generateFilterId(), field: 'name', operator: 'contains', value: '' },
-  ]);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [currentApiFilters, setCurrentApiFilters] = useState<
+    { id: string; field: string; operator: string; value: string }[] | null
+  >(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 12,
@@ -117,13 +93,48 @@ export const TenantsPage: React.FC = () => {
   }, [loadTenants, pagination.pageSize]);
 
   // Handle pagination changes (page size and page number)
-  const handlePaginationChange = async (page: number, pageSize: number) => {
-    setPagination(prev => ({ ...prev, current: page, pageSize }));
+  const handlePaginationChange = useCallback(
+    async (page: number, pageSize: number) => {
+      setPagination(prev => ({ ...prev, current: page, pageSize }));
+      const offset = (page - 1) * pageSize;
 
-    // Calculate offset for backend API
-    const offset = (page - 1) * pageSize;
-    await loadTenants({ offset, limit: pageSize });
-  };
+      // If we have active filters, use filter API with offset
+      if (currentApiFilters && currentApiFilters.length > 0) {
+        try {
+          setFilterLoading(true);
+          const response = await tenantService.filter({
+            filters: currentApiFilters,
+            limit: pageSize,
+            offset,
+          });
+
+          if (response.isErr()) {
+            throw new Error(response.error.message);
+          }
+
+          const apiResponse = response.value;
+          if (!isApiSuccess(apiResponse)) {
+            throw new Error(apiResponse.error?.message || 'Failed to filter tenants');
+          }
+
+          const data = apiResponse.data;
+          if (Array.isArray(data)) {
+            setTenants(data);
+          } else {
+            setTenants(data.data);
+          }
+        } catch (error) {
+          message.error(error instanceof Error ? error.message : 'Failed to load filtered tenants');
+        } finally {
+          setFilterLoading(false);
+        }
+      } else {
+        // No filters, load all with pagination
+        await loadTenants({ offset, limit: pageSize });
+      }
+    },
+    [currentApiFilters, loadTenants, message]
+  );
 
   // Custom pagination config that extends pharmacyPaginationConfig with dynamic values
   const tablePagination = {
@@ -140,40 +151,26 @@ export const TenantsPage: React.FC = () => {
     navigate(`/tenants/${tenant.id}/edit`);
   };
 
-  // Handle delete - open confirmation modal
-  const handleDelete = (id: TenantRecord['id']) => {
-    setDeleteTenantId(id);
-  };
-
-  // Confirm delete
-  const confirmDelete = async () => {
-    if (deleteTenantId) {
-      try {
-        const deleteResult = await tenantService.delete(deleteTenantId);
-        if (deleteResult.isErr()) {
-          throw new Error(deleteResult.error.message);
-        }
-
-        if (!isApiSuccess(deleteResult.value)) {
-          throw new Error(deleteResult.value.error?.message || 'Failed to delete tenant');
-        }
-        // Update tenants state after successful API response
-        await loadTenants({
-          offset: (pagination.current - 1) * pagination.pageSize,
-          limit: pagination.pageSize,
-        });
-        message.success('Tenant deleted successfully!');
-      } catch (error) {
-        message.error(error instanceof Error ? error.message : 'Failed to delete tenant');
-      } finally {
-        setDeleteTenantId(null);
+  // Handle delete - call API directly
+  const handleDelete = async (id: TenantRecord['id']) => {
+    try {
+      const deleteResult = await tenantService.delete(id);
+      if (deleteResult.isErr()) {
+        throw new Error(deleteResult.error.message);
       }
-    }
-  };
 
-  // Cancel delete
-  const cancelDelete = () => {
-    setDeleteTenantId(null);
+      if (!isApiSuccess(deleteResult.value)) {
+        throw new Error(deleteResult.value.error?.message || 'Failed to delete tenant');
+      }
+      // Update tenants state after successful API response
+      await loadTenants({
+        offset: (pagination.current - 1) * pagination.pageSize,
+        limit: pagination.pageSize,
+      });
+      message.success('Tenant deleted successfully!');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Failed to delete tenant');
+    }
   };
 
   // Open form for new tenant - navigate to create page
@@ -181,153 +178,65 @@ export const TenantsPage: React.FC = () => {
     navigate('/tenants/new');
   };
 
-  // Power search functions
-  const addFilter = () => {
-    setPowerFilters([
-      ...powerFilters,
-      { id: generateFilterId(), field: 'name', operator: 'contains', value: '' },
-    ]);
-  };
+  // Handle filter apply from DynamicFilter component
+  const handleFilterApply = useCallback(
+    async (filters: ActiveFilter[]) => {
+      try {
+        setFilterLoading(true);
 
-  const removeFilter = (index: number) => {
-    setPowerFilters(powerFilters.filter((_, i) => i !== index));
-  };
-
-  // Helper function to get valid operators for a field type
-  const getOperatorsForField = (field: string): string[] => {
-    if ((TEXT_FIELDS as readonly string[]).includes(field)) {
-      return ['contains', 'equals'];
-    } else if ((DATE_FIELDS as readonly string[]).includes(field)) {
-      return ['equals', 'gt', 'gte', 'lt', 'lte'];
-    }
-
-    // Default fallback
-    return ['contains', 'equals'];
-  };
-
-  // Helper function to check if a field is a date field
-  const isDateField = (field: string): boolean =>
-    (DATE_FIELDS as readonly string[]).includes(field);
-
-  // Helper function to convert ISO string to dayjs object
-  const isoToDayjs = (isoString: string): Dayjs | null => {
-    if (!isoString) return null;
-    const d = dayjs(isoString);
-    return d.isValid() ? d : null;
-  };
-
-  const updateFilter = (
-    index: number,
-    key: 'field' | 'operator' | 'value',
-    value: string
-  ): void => {
-    const updated = [...powerFilters];
-    const currentFilter = updated[index];
-
-    if (!currentFilter) {
-      return;
-    }
-
-    // If field is changing, check if current operator is still valid and clear stale values
-    if (key === 'field') {
-      const validOperators = getOperatorsForField(value);
-      const currentOperator = currentFilter.operator;
-      const isDateFieldValue = isDateField(value);
-      const wasDateField = isDateField(currentFilter.field);
-
-      // If field type changed (date <-> text), clear the value
-      const shouldClearValue = isDateFieldValue !== wasDateField;
-
-      // If current operator is valid for the new field, keep it; otherwise reset to first valid
-      if (validOperators.includes(currentOperator)) {
-        updated[index] = {
-          ...currentFilter,
-          [key]: value,
-          value: shouldClearValue ? '' : currentFilter.value,
-        };
-      } else {
-        updated[index] = {
-          ...currentFilter,
-          [key]: value,
-          operator: validOperators[0] ?? 'contains',
-          value: shouldClearValue ? '' : currentFilter.value,
-        };
-      }
-    } else {
-      updated[index] = { ...currentFilter, [key]: value };
-    }
-
-    setPowerFilters(updated);
-  };
-
-  const applyFilters = async () => {
-    try {
-      setLoading(true);
-      const validFilters = powerFilters.filter(f => f.value.trim() !== '');
-      if (validFilters.length === 0) {
-        // No filters, load all
-        setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page
-        await loadTenants({ offset: 0, limit: pagination.pageSize });
-        return;
-      }
-
-      // Validate date fields before sending
-      // Note: DatePicker already provides ISO strings, so we only validate format
-      const validatedFilters = validFilters.map(filter => {
-        if (isDateField(filter.field)) {
-          // Just validate that the value is a valid date string
-          const dateValue = new Date(filter.value);
-          if (Number.isNaN(dateValue.getTime())) {
-            throw new TypeError(`Invalid date format for field ${filter.field}: ${filter.value}`);
-          }
-          // Return filter as-is since DatePicker already provides ISO format
-          return filter;
-        }
-        return filter;
-      });
-
-      const response = await tenantService.filter({
-        filters: validatedFilters,
-        limit: pagination.pageSize, // Use current page size for filtered results
-      });
-
-      if (response.isErr()) {
-        throw new Error(response.error.message);
-      }
-
-      const apiResponse = response.value;
-
-      if (!isApiSuccess(apiResponse)) {
-        throw new Error(apiResponse.error?.message || 'Failed to filter tenants');
-      }
-
-      const data = apiResponse.data;
-
-      if (Array.isArray(data)) {
-        // Data is already TenantRecord[] from the API
-        setTenants(data);
-        setPagination(prev => ({ ...prev, current: 1, total: data.length }));
-      } else {
-        const paginated = data;
-        setTenants(paginated.data);
-        setPagination(prev => ({
-          ...prev,
-          current: 1,
-          total: paginated.total,
+        // Convert ActiveFilter to API format and store for pagination
+        const apiFilters = filters.map(f => ({
+          id: f.id,
+          field: f.field,
+          operator: f.operator,
+          value: f.value,
         }));
-      }
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Failed to filter tenants');
-    } finally {
-      setLoading(false);
-    }
-  };
+        setCurrentApiFilters(apiFilters);
 
-  const clearFilters = async () => {
-    setPowerFilters([{ id: generateFilterId(), field: 'name', operator: 'contains', value: '' }]);
-    setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page
+        const response = await tenantService.filter({
+          filters: apiFilters,
+          limit: pagination.pageSize,
+          offset: 0, // Reset to first page when applying new filters
+        });
+
+        if (response.isErr()) {
+          throw new Error(response.error.message);
+        }
+
+        const apiResponse = response.value;
+
+        if (!isApiSuccess(apiResponse)) {
+          throw new Error(apiResponse.error?.message || 'Failed to filter tenants');
+        }
+
+        const data = apiResponse.data;
+
+        if (Array.isArray(data)) {
+          setTenants(data);
+          setPagination(prev => ({ ...prev, current: 1, total: data.length }));
+        } else {
+          setTenants(data.data);
+          setPagination(prev => ({
+            ...prev,
+            current: 1,
+            total: data.total,
+          }));
+        }
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : 'Failed to filter tenants');
+      } finally {
+        setFilterLoading(false);
+      }
+    },
+    [message, pagination.pageSize]
+  );
+
+  // Handle filter clear
+  const handleFilterClear = useCallback(async () => {
+    setCurrentApiFilters(null);
+    setPagination(prev => ({ ...prev, current: 1 }));
     await loadTenants({ offset: 0, limit: pagination.pageSize });
-  };
+  }, [loadTenants, pagination.pageSize]);
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -421,22 +330,25 @@ export const TenantsPage: React.FC = () => {
               color: '#1890ff',
             }}
           />
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              handleDelete(tenant.id);
-            }}
-          />
+          <Popconfirm
+            title="Delete Tenant"
+            description="Are you sure you want to delete this tenant? This action cannot be undone."
+            onConfirm={() => handleDelete(tenant.id)}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+            />
+          </Popconfirm>
         </Space>
       ),
     },
   ];
-
-  // For filter validation, add error state for invalid dates
-  // Filter errors handled in applyFilters
 
   // Render content based on loading/empty/data states
   const renderContent = () => {
@@ -466,133 +378,15 @@ export const TenantsPage: React.FC = () => {
 
     return (
       <>
-        {/* Search Filters */}
-        <Card
-          title="Search Filters"
-          size="small"
-          style={{ borderRadius: '8px', marginTop: '16px' }}
-          data-testid="search-filters-card"
-        >
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            {powerFilters.map((filter, index) => (
-              <div
-                key={filter.id}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}
-                data-testid={`filter-row-${index}`}
-              >
-                <Select
-                  style={{ width: 150 }}
-                  value={filter.field}
-                  onChange={value => {
-                    updateFilter(index, 'field', value);
-                  }}
-                  placeholder="Field"
-                  data-testid={`filter-field-select-${index}`}
-                >
-                  <Select.Option value="id">ID</Select.Option>
-                  <Select.Option value="name">Name</Select.Option>
-                  <Select.Option value="db_url">Database URL</Select.Option>
-                  <Select.Option value="created_at">Created At</Select.Option>
-                  <Select.Option value="updated_at">Updated At</Select.Option>
-                </Select>
-
-                <Select
-                  style={{ width: 120 }}
-                  value={filter.operator}
-                  onChange={value => {
-                    updateFilter(index, 'operator', value);
-                  }}
-                  placeholder="Operator"
-                  data-testid={`filter-operator-select-${index}`}
-                >
-                  {getOperatorsForField(filter.field).map(op => (
-                    <Select.Option key={op} value={op}>
-                      {operatorLabels[op] ?? op}
-                    </Select.Option>
-                  ))}
-                </Select>
-
-                {isDateField(filter.field) ? (
-                  <DatePicker
-                    style={{ width: 200, flex: 1, minWidth: '150px' }}
-                    placeholder="Select date"
-                    showTime
-                    allowClear
-                    value={isoToDayjs(filter.value)}
-                    onChange={date => {
-                      if (date?.isValid()) {
-                        const iso = date.toDate().toISOString();
-                        updateFilter(index, 'value', iso);
-                      } else {
-                        updateFilter(index, 'value', '');
-                      }
-                    }}
-                    data-testid={`filter-value-date-${index}`}
-                  />
-                ) : (
-                  <Input
-                    style={{ width: 200, flex: 1, minWidth: '150px' }}
-                    placeholder="Value"
-                    value={filter.value}
-                    onChange={e => {
-                      updateFilter(index, 'value', e.target.value);
-                    }}
-                    data-testid={`filter-value-input-${index}`}
-                  />
-                )}
-
-                <Button
-                  type="text"
-                  danger
-                  icon={<MinusCircleOutlined />}
-                  onClick={() => {
-                    removeFilter(index);
-                  }}
-                  disabled={powerFilters.length <= 1}
-                  data-testid={`remove-filter-${index}`}
-                >
-                  Remove
-                </Button>
-
-                {index === powerFilters.length - 1 && (
-                  <Button
-                    type="text"
-                    icon={<PlusCircleOutlined />}
-                    onClick={addFilter}
-                    data-testid="add-filter-button"
-                  >
-                    Add Filter
-                  </Button>
-                )}
-              </div>
-            ))}
-
-            <Divider style={{ margin: '8px 0' }} />
-
-            <Space>
-              <Button
-                type="primary"
-                onClick={applyFilters}
-                disabled={loading}
-                data-testid="apply-filters-button"
-              >
-                Apply Filters
-              </Button>
-              <Button
-                onClick={clearFilters}
-                disabled={loading}
-                data-testid="clear-filters-button"
-              >
-                Clear All
-              </Button>
-            </Space>
-
-            <div style={{ fontSize: '14px', color: '#666' }}>
-              <Typography.Text strong>Note:</Typography.Text> Pick a date/time; it's sent as
-              ISO-8601 (UTC). Empty values are ignored.
-            </div>
-          </Space>
-        </Card>
+        {/* Dynamic Filter */}
+        <div style={{ marginTop: 16 }} data-testid="search-filters-card">
+          <DynamicFilter
+            fields={TENANT_FILTER_FIELDS}
+            onApply={handleFilterApply}
+            onClear={handleFilterClear}
+            loading={filterLoading}
+          />
+        </div>
 
         {/* Tenants Table */}
         <Card

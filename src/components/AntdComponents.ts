@@ -36,6 +36,7 @@ export {
   Tag,
   Skeleton,
   ConfigProvider,
+  Popconfirm,
   App as AntdApp,
 } from 'antd';
 
