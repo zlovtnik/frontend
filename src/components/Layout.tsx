@@ -138,7 +138,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <div style={layoutStyles.siderHeader}>
           <HeartOutlined style={{ fontSize: 32 }} />
-          <div>{tenant?.name || 'Natural Pharmacy System'}</div>
+          <div>{tenant?.name || 'Nexus'}</div>
         </div>
         <Menu
           theme="dark"
@@ -199,8 +199,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             boxSizing: 'border-box',
           }}
         >
-          <div>© 2025 Natural Pharmacy System. Built with TypeScript, Bun, and React.</div>
-          <div>Secure multi-tenant platform with JWT authentication</div>
+          <div>© {new Date().getFullYear()} Nexus Platform. Built with TypeScript, Bun, and React.</div>
+          <div>Secure multi-tenant platform with enterprise authentication</div>
         </AntLayout.Footer>
       </AntLayout>
     </AntLayout>

@@ -14,7 +14,7 @@ interface ConfirmResetFormValues {
 }
 
 const LABEL_STYLE: React.CSSProperties = {
-  color: 'var(--primary-700)',
+  color: '#243b53',
   fontWeight: 600,
 };
 
@@ -118,7 +118,7 @@ export const PasswordResetPage: React.FC = () => {
       style={{
         minHeight: '100vh',
         background:
-          'linear-gradient(135deg, var(--color-natural-light) 0%, var(--color-healing-light) 100%)',
+          'linear-gradient(135deg, #f0f4f8 0%, #e6f0ff 50%, #e0fcff 100%)',
         padding: '20px',
       }}
     >
@@ -126,17 +126,17 @@ export const PasswordResetPage: React.FC = () => {
         style={{
           width: 420,
           borderRadius: '16px',
-          border: '2px solid var(--primary-200)',
+          border: '1px solid #bcccdc',
           background:
-            'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(247,242,240,0.9) 100%)',
-          boxShadow: '0 20px 40px rgba(38, 70, 83, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+            'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(240,244,248,0.95) 100%)',
+          boxShadow: '0 20px 40px rgba(0, 102, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(10px)',
         }}
         title={
           <Typography.Title
             level={2}
             style={{
-              color: 'var(--color-healing-dark)',
+              color: '#0066ff',
               margin: 0,
               textAlign: 'center',
               fontSize: '2rem',
@@ -188,7 +188,7 @@ export const PasswordResetPage: React.FC = () => {
                 display: 'block',
                 fontSize: '16px',
                 marginBottom: '32px',
-                color: 'var(--primary-600)',
+                color: '#627d98',
               }}
             >
               Enter your email to receive a password reset link
@@ -280,7 +280,7 @@ export const PasswordResetPage: React.FC = () => {
                 display: 'block',
                 fontSize: '16px',
                 marginBottom: '32px',
-                color: 'var(--primary-600)',
+                color: '#627d98',
               }}
             >
               Check your email for the reset token and enter it below
@@ -430,7 +430,7 @@ export const PasswordResetPage: React.FC = () => {
           marginTop: '32px',
           display: 'block',
           maxWidth: '400px',
-          color: 'var(--primary-500)',
+          color: '#627d98',
           fontSize: '14px',
           lineHeight: '1.5',
         }}

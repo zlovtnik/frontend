@@ -9,25 +9,25 @@ import 'antd/dist/reset.css';
 
 const theme = {
   token: {
-    colorPrimary: '#264653', // Charcoal
-    colorSuccess: '#2a9d8f', // Persian Green
-    colorWarning: '#e9c46a', // Saffron
-    colorError: '#e76f51', // Burnt Sienna
-    colorInfo: '#f4a261', // Sandy Brown
-    colorBgBase: '#f7f8fa', // Base background
-    colorBgContainer: '#fdf8df', // Tertiary-50 alternative
-    colorBgElevated: '#f2f9f7', // Secondary-50 alternative
-    colorBgLayout: '#fffdf7', // Tertiary-100 alternative
-    colorTextBase: '#161e26', // Dark text
-    colorText: '#161e26', // Regular text
-    colorTextSecondary: '#125942', // Secondary dark text
-    colorTextDisabled: '#99aebf', // Neutral-300
-    colorBorder: '#c8d4dd', // Neutral-200
-    colorBorderSecondary: '#99aebf', // Neutral-300
-    colorFill: '#e8ecf1', // Neutral-100
-    colorFillSecondary: '#c8d4dd', // Neutral-200
-    colorFillTertiary: '#99aebf', // Neutral-300
-    colorBlack: '#161e26', // Neutral-900
+    colorPrimary: '#0066ff', // Electric Blue
+    colorSuccess: '#22c55e', // Electric Green
+    colorWarning: '#f59e0b', // Amber
+    colorError: '#f43f5e', // Electric Rose
+    colorInfo: '#00b4d8', // Electric Cyan
+    colorBgBase: '#f0f4f8', // Light blue-gray
+    colorBgContainer: '#ffffff', // White for containers
+    colorBgElevated: '#ffffff', // White elevated
+    colorBgLayout: '#f0f4f8', // Light blue-gray layout
+    colorTextBase: '#243b53', // Deep blue-gray text
+    colorText: '#243b53', // Regular text
+    colorTextSecondary: '#627d98', // Medium blue-gray
+    colorTextDisabled: '#9fb3c8', // Light blue-gray
+    colorBorder: '#bcccdc', // Blue-tinted border
+    colorBorderSecondary: '#d9e2ec', // Lighter border
+    colorFill: '#d9e2ec', // Fill color
+    colorFillSecondary: '#e0fcff', // Cyan tint fill
+    colorFillTertiary: '#f3e8ff', // Violet tint fill
+    colorBlack: '#102a43', // Deep navy
     borderRadius: 8,
     borderRadiusLG: 12,
     borderRadiusSM: 4,
@@ -35,32 +35,32 @@ const theme = {
   },
   components: {
     Menu: {
-      darkItemBg: '#1a3037', // primary-700
-      darkItemSelectedBg: '#203b45', // primary-600
-      darkItemColor: '#e8ecf1', // primary-100
-      darkItemSelectedColor: '#f7f8fa', // primary-50
-      darkIconColor: '#e8ecf1', // primary-100
-      darkSubMenuItemBg: '#101d22', // primary-900
-      darkItemHoverColor: '#f7f8fa', // primary-50
-      darkItemHoverBg: '#203b45', // primary-600
-      itemBg: '#f2f9f7', // Light background
-      itemColor: '#1e645f', // Secondary-700
-      itemSelectedBg: '#2a9d8f', // secondary-500
-      itemSelectedColor: 'white',
-      itemHoverBg: '#a7d9bd', // secondary-400
+      darkItemBg: '#001433', // primary-900
+      darkItemSelectedBg: '#0052cc', // primary-600
+      darkItemColor: '#cce0ff', // primary-100
+      darkItemSelectedColor: '#ffffff',
+      darkIconColor: '#99c2ff', // primary-200
+      darkSubMenuItemBg: '#000a1a', // primary-950
+      darkItemHoverColor: '#ffffff',
+      darkItemHoverBg: '#003d99', // primary-700
+      itemBg: '#f0f4f8', // Light background
+      itemColor: '#243b53', // Deep text
+      itemSelectedBg: '#e6f0ff', // primary-50
+      itemSelectedColor: '#0066ff', // primary-500
+      itemHoverBg: '#cce0ff', // primary-100
     },
     Table: {
-      headerBg: '#e8ecf1',
-      headerColor: '#264653',
-      rowHoverBg: '#f2f9f7',
-      rowSelectedBg: '#e3f3ef',
+      headerBg: '#e6f0ff',
+      headerColor: '#0066ff',
+      rowHoverBg: '#f0f4f8',
+      rowSelectedBg: '#e6f0ff',
     },
     Card: {
-      colorBgContainer: '#f7f8fa',
+      colorBgContainer: '#ffffff',
     },
     Button: {
-      primaryShadow: '0 2px 8px rgba(38, 70, 83, 0.15)',
-      colorPrimaryHover: '#203b45', // primary-600
+      primaryShadow: '0 2px 8px rgba(0, 102, 255, 0.25)',
+      colorPrimaryHover: '#0052cc', // primary-600
     },
   },
 };
@@ -71,12 +71,10 @@ if (!rootElement) {
 }
 const root = ReactDOM.createRoot(rootElement);
 
-// Preload common passwords for synchronous access
-if (typeof document !== 'undefined' && document.getElementById('root')) {
-  preloadCommonPasswords().catch((error: unknown) => {
-    console.warn('Failed to preload common passwords:', error);
-  });
-}
+// Preload common passwords lazily (non-blocking)
+preloadCommonPasswords().catch((error: unknown) => {
+  console.warn('Failed to preload common passwords:', error);
+});
 
 root.render(
   <React.StrictMode>

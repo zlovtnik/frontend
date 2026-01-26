@@ -55,7 +55,7 @@ export const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-natural-light text-natural-dark">
+      <div className="min-h-screen bg-background-light text-text-dark">
         <AuthProvider>
           <Suspense fallback={<PageSkeleton />}>
             <Routes>

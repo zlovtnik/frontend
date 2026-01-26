@@ -8,6 +8,7 @@
  */
 
 import { type Result, ok, err } from 'neverthrow';
+import { match } from 'ts-pattern';
 import type { FormValidationError } from './formValidation';
 import { formatFormValidationError } from './formValidation';
 
@@ -339,44 +340,40 @@ export const createFormResolver = <TForm extends Record<string, unknown>, TValid
 export const formatPipelineError = <E = FormValidationError>(
   error: PipelineError<E>,
   errorFormatter?: (err: E) => string
-): string => {
-  switch (error.type) {
-    case 'VALIDATION_ERROR':
-      if (typeof error.errors === 'object' && error.errors !== null && 'type' in error.errors) {
-        // Single validation error
+): string =>
+  match(error)
+    .with({ type: 'VALIDATION_ERROR' }, ({ errors }) => {
+      // Single validation error with 'type' property
+      if (typeof errors === 'object' && errors !== null && 'type' in errors) {
         return errorFormatter
-          ? errorFormatter(error.errors as E)
-          : formatFormValidationError(error.errors as unknown as FormValidationError);
+          ? errorFormatter(errors as E)
+          : formatFormValidationError(errors as unknown as FormValidationError);
       }
 
-      // Multiple field errors - format each field error individually
-      if (typeof error.errors === 'object' && error.errors !== null) {
-        const fieldErrors: string[] = [];
-
-        for (const [fieldName, fieldError] of Object.entries(error.errors)) {
-          const formattedError = errorFormatter
+      // Multiple field errors
+      if (typeof errors === 'object' && errors !== null) {
+        const fieldErrors = Object.entries(errors).map(([field, fieldError]) => {
+          const formatted = errorFormatter
             ? errorFormatter(fieldError as E)
             : formatFormValidationError(fieldError as FormValidationError);
+          return `${field}: ${formatted}`;
+        });
 
-          fieldErrors.push(`${fieldName}: ${formattedError}`);
-        }
-
-        if (fieldErrors.length > 0) {
-          return `Form validation failed: ${fieldErrors.join(', ')}`;
-        }
+        return fieldErrors.length > 0
+          ? `Form validation failed: ${fieldErrors.join(', ')}`
+          : 'Form validation failed. Please check your inputs.';
       }
 
       return 'Form validation failed. Please check your inputs.';
-    case 'SANITIZATION_ERROR':
-      return `Data sanitization error: ${error.reason}`;
-    case 'TRANSFORMATION_ERROR':
-      return `Data transformation error: ${error.reason}`;
-    case 'SUBMISSION_ERROR':
-      return error.statusCode != null
-        ? `Submission failed (${error.statusCode}): ${error.message}`
-        : `Submission failed: ${error.message}`;
-  }
-};
+    })
+    .with({ type: 'SANITIZATION_ERROR' }, ({ reason }) => `Data sanitization error: ${reason}`)
+    .with({ type: 'TRANSFORMATION_ERROR' }, ({ reason }) => `Data transformation error: ${reason}`)
+    .with({ type: 'SUBMISSION_ERROR' }, ({ statusCode, message }) =>
+      statusCode == null
+        ? `Submission failed: ${message}`
+        : `Submission failed (${statusCode}): ${message}`
+    )
+    .exhaustive();
 
 /**
  * Pipeline state machine helpers

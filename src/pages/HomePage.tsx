@@ -13,13 +13,31 @@ import {
   SecurityScanOutlined,
   HomeOutlined,
   ThunderboltOutlined,
-  HeartOutlined,
+  ApiOutlined,
 } from '@/components/AntdComponents';
+
+/**
+ * Centralized theme object for HomePage colors.
+ * These align with CSS variables defined in src/styles/index.css.
+ */
+const theme = {
+  colors: {
+    primary: 'var(--primary-500)',
+    headerBackground: 'var(--neutral-50)',
+    headerBorder: 'var(--neutral-200)',
+    contentBackground: 'var(--color-background-light)',
+    footerBackground: 'var(--primary-900)',
+    featureCardGradientStart: 'var(--primary-50)',
+    featureCardGradientEnd: 'var(--secondary-50)',
+    sectionBackground: 'var(--neutral-50)',
+    white: '#ffffff',
+  },
+} as const;
 
 const styles = {
   header: {
-    background: '#fafaf9',
-    borderBottom: '1px solid #d9d9d9',
+    background: theme.colors.headerBackground,
+    borderBottom: `1px solid ${theme.colors.headerBorder}`,
   },
   headerContent: {
     display: 'flex',
@@ -29,7 +47,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    color: '#1f6b3e',
+    color: theme.colors.primary,
   },
 };
 
@@ -79,21 +97,21 @@ export const HomePage: React.FC = () => {
       <Layout.Header style={styles.header}>
         <div style={styles.headerContent}>
           <Typography.Title level={4} style={styles.title}>
-            <HeartOutlined style={{ marginRight: 8 }} />
-            Natural Pharmacy System
+            <ApiOutlined style={{ marginRight: 8 }} />
+            Nexus
           </Typography.Title>
         </div>
       </Layout.Header>
 
-      <Layout.Content style={{ background: '#f7f4f0' }}>
+      <Layout.Content style={{ background: theme.colors.contentBackground }}>
         {/* Hero Section */}
         <div
           style={{ padding: '64px 24px', textAlign: 'center', maxWidth: 1000, margin: '0 auto' }}
         >
-          <Typography.Title level={1}>Welcome to the Natural Pharmacy System</Typography.Title>
+          <Typography.Title level={1}>Welcome to Nexus</Typography.Title>
           <Typography.Paragraph style={{ fontSize: 18, marginBottom: 32 }}>
-            A modern, secure multi-tenant platform for managing pharmaceutical data with JWT
-            authentication and comprehensive tenant isolation.
+            A modern, secure multi-tenant platform for managing your organization's data with
+            enterprise-grade authentication and comprehensive tenant isolation.
           </Typography.Paragraph>
 
           <Space size="large">
@@ -130,7 +148,7 @@ export const HomePage: React.FC = () => {
         <Divider />
 
         {/* Features Section */}
-        <div style={{ background: '#fff', padding: '64px 24px' }}>
+        <div style={{ background: theme.colors.sectionBackground, padding: '64px 24px' }}>
           <Row gutter={[24, 24]}>
             {features.map(feature => (
               <Col xs={24} md={8} key={feature.id}>
@@ -142,7 +160,7 @@ export const HomePage: React.FC = () => {
                     <div
                       style={{
                         padding: '24px 0',
-                        background: '#dcf2e6',
+                        background: `linear-gradient(135deg, ${theme.colors.featureCardGradientStart} 0%, ${theme.colors.featureCardGradientEnd} 100%)`,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
@@ -169,8 +187,8 @@ export const HomePage: React.FC = () => {
         </div>
       </Layout.Content>
 
-      <Layout.Footer style={{ textAlign: 'center', background: '#1c1917', color: '#fff' }}>
-        © 2025 Natural Pharmacy System. Built with React, TypeScript, and Bun runtime.
+      <Layout.Footer style={{ textAlign: 'center', background: theme.colors.footerBackground, color: theme.colors.white }}>
+        © {new Date().getFullYear()} Nexus Platform. Built with React, TypeScript, and Bun runtime.
       </Layout.Footer>
     </Layout>
   );

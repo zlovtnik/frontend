@@ -62,7 +62,7 @@ export const RegisterPage: React.FC = () => {
       style={{
         minHeight: '100vh',
         background:
-          'linear-gradient(135deg, var(--color-natural-light) 0%, var(--color-healing-light) 100%)',
+          'linear-gradient(135deg, var(--color-background-light) 0%, var(--color-info-light) 100%)',
         padding: '20px',
       }}
     >
@@ -80,7 +80,7 @@ export const RegisterPage: React.FC = () => {
           <Typography.Title
             level={2}
             style={{
-              color: 'var(--color-healing-dark)',
+              color: 'var(--color-info-dark)',
               margin: 0,
               textAlign: 'center',
               fontSize: '2rem',

@@ -189,7 +189,7 @@ export const LoginPageFP: React.FC = () => {
       style={{
         minHeight: '100vh',
         background:
-          'linear-gradient(135deg, var(--color-natural-light) 0%, var(--color-healing-light) 100%)',
+          'linear-gradient(135deg, var(--color-background-light) 0%, var(--primary-50) 50%, var(--secondary-50) 100%)',
         padding: '20px',
       }}
     >
@@ -197,17 +197,17 @@ export const LoginPageFP: React.FC = () => {
         style={{
           width: 420,
           borderRadius: '16px',
-          border: '2px solid var(--primary-200)',
+          border: '1px solid var(--neutral-300)',
           background:
-            'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(247,242,240,0.9) 100%)',
-          boxShadow: '0 20px 40px rgba(38, 70, 83, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+            'linear-gradient(145deg, var(--neutral-50) 0%, var(--color-background-light) 100%)',
+          boxShadow: '0 20px 40px var(--primary-shadow-color-light), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(10px)',
         }}
         title={
           <Typography.Title
             level={2}
             style={{
-              color: 'var(--color-healing-dark)',
+              color: 'var(--primary-500)',
               margin: 0,
               textAlign: 'center',
               fontSize: '2rem',
@@ -235,7 +235,7 @@ export const LoginPageFP: React.FC = () => {
             display: 'block',
             fontSize: '16px',
             marginBottom: '32px',
-            color: 'var(--primary-600)',
+            color: 'var(--neutral-500)',
           }}
         >
           Access your multi-tenant application
@@ -291,7 +291,7 @@ export const LoginPageFP: React.FC = () => {
                     {...field}
                     checked={field.value}
                     disabled={isFormLoading}
-                    style={{ color: 'var(--primary-600)' }}
+                    style={{ color: 'var(--neutral-700)' }}
                   >
                     Remember me
                   </Checkbox>

@@ -2,28 +2,28 @@ import React from 'react';
 
 export const ColorTest: React.FC = () => {
   return (
-    <div className="min-h-screen bg-natural-light p-8">
+    <div className="min-h-screen bg-background-light p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-healing-dark mb-8 text-center">
-          🌿 Natural Pharmacy Color System
+        <h1 className="text-4xl font-bold text-info-dark mb-8 text-center">
+          ⚡ Nexus Design System
         </h1>
 
         {/* Quick Visual Test */}
         <div className="mb-8 p-6 bg-white rounded-xl shadow-xl">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">🧪 Quick Style Test</h2>
-          <p className="text-natural-dark mb-4">
-            If you can see proper colors and styling below, the Natural Pharmacy theme is working!
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">🧪 Quick Style Test</h2>
+          <p className="text-text-dark mb-4">
+            If you can see proper colors and styling below, the Nexus theme is working!
           </p>
           <div className="flex gap-4 flex-wrap">
-            <button className="btn-primary-pharmacy">Primary Healing</button>
-            <button className="btn-secondary-pharmacy">Secondary Warm</button>
-            <button className="btn-accent-pharmacy">Accent Wellness</button>
+            <button className="btn-primary">Primary Action</button>
+            <button className="btn-secondary">Secondary</button>
+            <button className="btn-accent">Accent</button>
           </div>
         </div>
 
-        {/* Primary Colors - Sage Green */}
+        {/* Primary Colors - Electric Blue */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">Primary - Sage Green</h2>
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">Primary - Electric Blue</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-primary-50 p-4 rounded-lg text-primary-950 font-medium">
               50 - Very Light
@@ -48,10 +48,10 @@ export const ColorTest: React.FC = () => {
           </div>
         </section>
 
-        {/* Secondary Colors - Golden Honey */}
+        {/* Secondary Colors - Electric Cyan */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">
-            Secondary - Golden Honey
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">
+            Secondary - Electric Cyan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-secondary-50 p-4 rounded-lg text-secondary-950 font-medium">
@@ -64,13 +64,13 @@ export const ColorTest: React.FC = () => {
               400 - Medium
             </div>
             <div className="bg-secondary-500 p-4 rounded-lg text-white font-medium">
-              500 - Honey
+              500 - Cyan
             </div>
             <div className="bg-secondary-600 p-4 rounded-lg text-white font-medium">
-              600 - Dark Honey
+              600 - Dark Cyan
             </div>
             <div className="bg-secondary-800 p-4 rounded-lg text-white font-medium">
-              800 - Browner
+              800 - Deeper
             </div>
             <div className="bg-secondary-900 p-4 rounded-lg text-white font-medium">
               900 - Very Dark
@@ -78,21 +78,21 @@ export const ColorTest: React.FC = () => {
           </div>
         </section>
 
-        {/* Tertiary Colors - Earth Brown */}
+        {/* Tertiary Colors - Electric Violet */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">Tertiary - Earth Brown</h2>
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">Tertiary - Electric Violet</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-tertiary-100 p-4 rounded-lg text-tertiary-950 font-medium">
-              100 - Light Earth
+              100 - Light Violet
             </div>
             <div className="bg-tertiary-300 p-4 rounded-lg text-white font-medium">
               300 - Light Medium
             </div>
             <div className="bg-tertiary-500 p-4 rounded-lg text-white font-medium">
-              500 - Earth Brown
+              500 - Electric Violet
             </div>
             <div className="bg-tertiary-600 p-4 rounded-lg text-white font-medium">
-              600 - Dark Earth
+              600 - Dark Violet
             </div>
             <div className="bg-tertiary-700 p-4 rounded-lg text-white font-medium">
               700 - Deeper
@@ -103,24 +103,24 @@ export const ColorTest: React.FC = () => {
           </div>
         </section>
 
-        {/* Accent Colors - Mint Green */}
+        {/* Accent Colors - Electric Green */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">Accent - Mint Green</h2>
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">Accent - Electric Green</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-accent-50 p-4 rounded-lg text-accent-950 font-medium">
               50 - Very Light
             </div>
             <div className="bg-accent-200 p-4 rounded-lg text-accent-950 font-medium">
-              200 - Pale Mint
+              200 - Pale Green
             </div>
             <div className="bg-accent-400 p-4 rounded-lg text-white font-medium">
-              400 - Medium Mint
+              400 - Medium Green
             </div>
             <div className="bg-accent-500 p-4 rounded-lg text-white font-medium">
-              500 - Mint Green
+              500 - Electric Green
             </div>
             <div className="bg-accent-700 p-4 rounded-lg text-white font-medium">
-              700 - Deeper Mint
+              700 - Deeper Green
             </div>
             <div className="bg-accent-800 p-4 rounded-lg text-white font-medium">
               800 - Very Dark
@@ -130,47 +130,47 @@ export const ColorTest: React.FC = () => {
 
         {/* Component Examples */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">Component Examples</h2>
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">Component Examples</h2>
           <div className="space-y-6">
             {/* Buttons */}
             <div>
-              <h3 className="text-lg font-medium text-healing-dark mb-3">Buttons</h3>
+              <h3 className="text-lg font-medium text-info-dark mb-3">Buttons</h3>
               <div className="flex flex-wrap gap-4">
-                <button className="btn-primary-pharmacy">Primary Button</button>
-                <button className="btn-secondary-pharmacy">Secondary Button</button>
-                <button className="btn-accent-pharmacy">Accent Button</button>
+                <button className="btn-primary">Primary Button</button>
+                <button className="btn-secondary">Secondary Button</button>
+                <button className="btn-accent">Accent Button</button>
               </div>
             </div>
 
             {/* Cards */}
             <div>
-              <h3 className="text-lg font-medium text-healing-dark mb-3">Cards</h3>
+              <h3 className="text-lg font-medium text-info-dark mb-3">Cards</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="card-pharmacy">
-                  <div className="card-header-pharmacy">
-                    <h4 className="font-semibold text-healing-dark">Patient Dashboard</h4>
+                <div className="card-nexus">
+                  <div className="card-header-nexus">
+                    <h4 className="font-semibold text-info-dark">User Dashboard</h4>
                   </div>
-                  <div className="card-body-pharmacy">
-                    <p className="text-natural-dark">
-                      Manage patient information with our natural healing approach.
+                  <div className="card-body-nexus">
+                    <p className="text-text-dark">
+                      Manage user information with our secure platform.
                     </p>
                   </div>
-                  <div className="card-footer-pharmacy">
-                    <button className="btn-primary-pharmacy text-sm">View Details</button>
+                  <div className="card-footer-nexus">
+                    <button className="btn-primary text-sm">View Details</button>
                   </div>
                 </div>
 
-                <div className="card-pharmacy">
-                  <div className="card-header-pharmacy">
-                    <h4 className="font-semibold text-healing-dark">Address Book</h4>
+                <div className="card-nexus">
+                  <div className="card-header-nexus">
+                    <h4 className="font-semibold text-info-dark">Address Book</h4>
                   </div>
-                  <div className="card-body-pharmacy">
-                    <p className="text-natural-dark">
-                      Comprehensive contact management for healthcare providers.
+                  <div className="card-body-nexus">
+                    <p className="text-text-dark">
+                      Comprehensive contact management for your organization.
                     </p>
                   </div>
-                  <div className="card-footer-pharmacy">
-                    <button className="btn-accent-pharmacy text-sm">Manage Contacts</button>
+                  <div className="card-footer-nexus">
+                    <button className="btn-accent text-sm">Manage Contacts</button>
                   </div>
                 </div>
               </div>
@@ -178,25 +178,25 @@ export const ColorTest: React.FC = () => {
 
             {/* Form Elements */}
             <div>
-              <h3 className="text-lg font-medium text-healing-dark mb-3">Form Elements</h3>
+              <h3 className="text-lg font-medium text-info-dark mb-3">Form Elements</h3>
               <div className="max-w-md">
-                <label className="form-label-pharmacy">Patient Name</label>
+                <label className="form-label-nexus">Full Name</label>
                 <input
                   type="text"
-                  className="form-input-pharmacy"
-                  placeholder="Enter patient name"
+                  className="form-input-nexus"
+                  placeholder="Enter full name"
                 />
 
-                <label className="form-label-pharmacy">Email Address</label>
+                <label className="form-label-nexus">Email Address</label>
                 <input
                   type="email"
-                  className="form-input-pharmacy"
-                  placeholder="patient@example.com"
+                  className="form-input-nexus"
+                  placeholder="user@example.com"
                 />
 
                 <div className="mt-4">
-                  <button className="btn-primary-pharmacy mr-3">Save Patient</button>
-                  <button className="btn-secondary-pharmacy">Cancel</button>
+                  <button className="btn-primary mr-3">Save</button>
+                  <button className="btn-secondary">Cancel</button>
                 </div>
               </div>
             </div>
@@ -205,28 +205,28 @@ export const ColorTest: React.FC = () => {
 
         {/* Background Examples */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-healing-dark mb-4">Background Themes</h2>
+          <h2 className="text-2xl font-semibold text-info-dark mb-4">Background Themes</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-lg bg-healing">
-              <h3 className="text-healing-dark font-semibold mb-2">Healing Theme</h3>
-              <p className="text-healing-dark/80">
-                Sage green background representing natural healing and wellness.
+            <div className="p-6 rounded-lg bg-info-light">
+              <h3 className="text-info-dark font-semibold mb-2">Info Theme</h3>
+              <p className="text-info-dark/80">
+                Cyan background representing information and positive actions.
               </p>
             </div>
 
-            <div className="p-6 rounded-lg bg-natural">
-              <h3 className="text-natural-dark font-semibold mb-2">Natural Theme</h3>
-              <p className="text-natural-dark/80">
-                Earth brown background representing grounding and stability.
+            <div className="p-6 rounded-lg bg-background-light">
+              <h3 className="text-text-dark font-semibold mb-2">Background Theme</h3>
+              <p className="text-text-dark/80">
+                Light blue-gray background for general layouts.
               </p>
             </div>
 
-            <div className="p-6 rounded-lg bg-wellness">
-              <h3 className="font-semibold mb-2" style={{ color: 'var(--color-wellness-dark)' }}>
-                Wellness Theme
+            <div className="p-6 rounded-lg bg-success-light">
+              <h3 className="font-semibold mb-2" style={{ color: 'var(--color-success-dark)' }}>
+                Success Theme
               </h3>
-              <p style={{ color: 'var(--color-wellness-dark)' }}>
-                Mint green background representing fresh energy and vitality.
+              <p style={{ color: 'var(--color-success-dark)' }}>
+                Light lime background representing success and growth.
               </p>
             </div>
           </div>

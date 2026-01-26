@@ -1,7 +1,7 @@
 {
-  "name": "actix-web-rest-api-frontend",
+  "name": "nexus-frontend",
   "version": "1.0.0",
-  "description": "TypeScript/Bun/React frontend for Actix Web REST API with JWT authentication and multi-tenant support - Natural Pharmacy Color System",
+  "description": "Nexus - Modern multi-tenant platform for managing organizations, customers, and analytics",
   "type": "module",
   "scripts": {
     "dev": "vite",

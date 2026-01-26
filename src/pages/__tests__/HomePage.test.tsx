@@ -53,7 +53,7 @@ describe('HomePage Component', () => {
       renderWithoutAuth(<HomePage />);
 
       // Test that we can find the main welcome text (this should fail if we're redirected)
-      expect(screen.getByText('Welcome to the Natural Pharmacy System')).toBeInTheDocument();
+      expect(screen.getByText('Welcome to Nexus')).toBeInTheDocument();
 
       // Test that we can find the feature titles
       expect(screen.getByText('Secure Authentication')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('HomePage Component', () => {
 
       // Should display the specific welcome message
       const welcomeHeading = screen.getByRole('heading', {
-        name: /Welcome to the Natural Pharmacy System/i,
+        name: /Welcome to Nexus/i,
       });
       expect(welcomeHeading).toBeInTheDocument();
 
@@ -134,7 +134,7 @@ describe('HomePage Component', () => {
       // Test for hero H1 heading (main page title)
       const heroHeading = screen.getByRole('heading', { level: 1 });
       expect(heroHeading).toBeInTheDocument();
-      expect(heroHeading).toHaveTextContent(/Welcome to.*Natural Pharmacy System/i);
+      expect(heroHeading).toHaveTextContent(/Welcome to Nexus/i);
       // Test for feature sections using accessible content
       // There are 4 headings total: 1 h1 (welcome), 1 h4 (header title), 3 h4 (features)
       const allHeadings = screen.getAllByRole('heading');
@@ -173,7 +173,7 @@ describe('HomePage Component', () => {
       // Assert there is a level-1 heading (h1)
       const h1Heading = allHeadings.find(heading => heading.tagName === 'H1');
       expect(h1Heading).toBeInTheDocument();
-      expect(h1Heading).toHaveTextContent(/Welcome to the Natural Pharmacy System/i);
+      expect(h1Heading).toHaveTextContent(/Welcome to Nexus/i);
 
       // Assert there is at least one subheading (h2, h3, or h4)
       const h2Headings = allHeadings.filter(heading => heading.tagName === 'H2');

@@ -2,7 +2,20 @@ import { useAsync } from './useAsync';
 import type { AsyncResult, Result } from '../types/fp';
 import type { AppError, ApiCallError } from '../types/errors';
 import { createNetworkError } from '../types/errors';
-import { err } from 'neverthrow';
+import { err, ok } from 'neverthrow';
+
+/**
+ * Type guard to check if an error is an AppError
+ */
+function isAppError(error: unknown): error is AppError {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'type' in error &&
+    typeof (error as AppError).type === 'string' &&
+    typeof (error as AppError).message === 'string'
+  );
+}
 
 /**
  * Configuration options for API calls
@@ -71,102 +84,141 @@ export function useApiCall<
     retryDelay = 1000,
   } = options;
 
+  // Helper functions for better code organization
+  const totalAttempts = maxRetries + 1;
+  const createRetryMetadata = (error: EOut, attempt: number): EOut & ApiCallError => ({
+    ...error,
+    attemptNumber: attempt,
+    maxRetries,
+    retryable: retryOnError && attempt < totalAttempts,
+  });
+
+  const coerceResult = (result: Result<TIn, EIn>): Result<TOut, EOut> => {
+    if (transformResult) {
+      return transformResult(result);
+    }
+
+    // Type assertion is safe here because we trust the transformResult to handle type conversion
+    return result as unknown as Result<TOut, EOut>;
+  };
+
+  const mapUnknownError = (error: unknown): EOut => {
+    if (transformError) {
+      return transformError(error);
+    }
+
+    if (isAppError(error)) {
+      return error as EOut;
+    }
+
+    // Normalize unexpected failures into a network error so consumers can rely on typed errors
+    const base = createNetworkError(
+      error instanceof Error ? error.message : 'Unexpected request failure',
+      undefined,
+      {
+        cause: error instanceof Error ? error : undefined,
+      }
+    );
+
+    return base as unknown as EOut;
+  };
+
+  const handleSuccess = (data: TOut): Result<TOut, EOut & ApiCallError> => {
+    if (onSuccess) {
+      onSuccess(data);
+    }
+    // Type assertion is safe because success data type is already TOut
+    return ok(data as TOut & EOut & ApiCallError) as Result<TOut, EOut & ApiCallError>;
+  };
+
+  const handleError = (
+    error: EOut,
+    attempt: number
+  ): Result<TOut, EOut & ApiCallError> | null => {
+    const enrichedError = createRetryMetadata(error, attempt);
+
+    if (onError) {
+      onError(enrichedError);
+    }
+
+    // If not retrying or this was the last attempt, return the error
+    if (!retryOnError || attempt >= totalAttempts) {
+      return err(enrichedError);
+    }
+
+    // Continue to retry - return null to indicate retry should happen
+    return null;
+  };
+
+  const delay = (ms: number): Promise<void> =>
+    new Promise(resolve => setTimeout(resolve, ms));
+
+  /**
+   * Processes an error during an API call attempt, determining whether to retry or return.
+   * @returns The final error result if no more retries, or null to signal a retry should occur.
+   */
+  const processAttemptError = async (
+    error: EOut,
+    attempt: number,
+    totalAttempts: number
+  ): Promise<Result<TOut, EOut & ApiCallError> | null> => {
+    const errorResult = handleError(error, attempt);
+    if (errorResult !== null) {
+      return errorResult;
+    }
+
+    // Wait before retry if more attempts remain
+    const hasMoreAttempts = attempt < totalAttempts;
+    if (retryDelay > 0 && hasMoreAttempts) {
+      await delay(retryDelay);
+    }
+
+    return null;
+  };
+
+  /**
+   * Executes a single API call attempt.
+   * @returns Success result, error result (no more retries), or null (should retry).
+   */
+  const executeAttempt = async (
+    attempt: number,
+    totalAttempts: number
+  ): Promise<Result<TOut, EOut & ApiCallError> | null> => {
+    try {
+      const rawResult = await apiFunction();
+      const finalResult = coerceResult(rawResult);
+
+      if (finalResult.isOk()) {
+        return handleSuccess(finalResult.value);
+      }
+
+      return processAttemptError(finalResult.error, attempt, totalAttempts);
+    } catch (error) {
+      const mappedError = mapUnknownError(error);
+      return processAttemptError(mappedError, attempt, totalAttempts);
+    }
+  };
+
   // Enhanced API function with error handling and retry logic
   const enhancedApiCall = async (): Promise<Result<TOut, EOut & ApiCallError>> => {
-    const withRetryMetadata = (error: EOut, attempt: number): EOut & ApiCallError => ({
-      ...error,
-      attemptNumber: attempt,
-      maxRetries,
-      retryable: retryOnError && attempt < maxRetries,
-    });
+    // Total attempts = 1 initial + maxRetries retries
+    const totalAttempts = retryOnError ? maxRetries + 1 : 1;
 
-    let lastError: (EOut & ApiCallError) | null = null;
+    for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+      const attemptResult = await executeAttempt(attempt, totalAttempts);
 
-    const coerceResult = (result: Result<TIn, EIn>): Result<TOut, EOut> => {
-      if (transformResult) {
-        return transformResult(result);
-      }
-
-      return result as unknown as Result<TOut, EOut>;
-    };
-
-    const mapUnknownError = (error: unknown): EOut => {
-      if (transformError) {
-        return transformError(error);
-      }
-
-      if (error && typeof error === 'object' && 'type' in (error as Record<string, unknown>)) {
-        return error as EOut;
-      }
-
-      // Normalize unexpected failures into a network error so consumers can rely on typed errors
-      const base = createNetworkError(
-        error instanceof Error ? error.message : 'Unexpected request failure',
-        undefined,
-        {
-          cause: error instanceof Error ? error : undefined,
-        }
-      );
-
-      return base as unknown as EOut;
-    };
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const asyncResult = apiFunction();
-        const rawResult = await asyncResult;
-        const finalResult = coerceResult(rawResult);
-
-        if (finalResult.isOk()) {
-          if (onSuccess) {
-            onSuccess(finalResult.value);
-          }
-
-          return finalResult as Result<TOut, EOut & ApiCallError>;
-        } else {
-          const normalizedError = finalResult.error;
-          const enrichedError = withRetryMetadata(normalizedError, attempt);
-          lastError = enrichedError;
-
-          // Call error handler
-          if (onError) {
-            onError(enrichedError);
-          }
-
-          // If not retrying or last attempt, return enriched error (do not call transformResult on error)
-          if (!retryOnError || attempt === maxRetries) {
-            return err(enrichedError);
-          }
-
-          // Wait before retry
-          if (retryDelay > 0 && attempt < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-          }
-        }
-      } catch (error) {
-        const mappedError = mapUnknownError(error);
-        lastError = withRetryMetadata(mappedError, attempt);
-
-        if (onError) {
-          onError(lastError);
-        }
-
-        if (!retryOnError || attempt === maxRetries) {
-          return err(lastError);
-        }
-
-        // Wait before retry
-        if (retryDelay > 0 && attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-        }
+      if (attemptResult !== null) {
+        return attemptResult;
       }
     }
 
-    const fallbackError =
-      lastError ??
-      withRetryMetadata(mapUnknownError(new Error('Request failed without details')), maxRetries);
-
-    return err(fallbackError);
+    // Fallback if all retries exhausted without returning (defensive)
+    return err(
+      createRetryMetadata(
+        mapUnknownError(new Error('Request failed without details')),
+        totalAttempts
+      )
+    );
   };
 
   // Use the useAsync hook with our enhanced API call

@@ -8,71 +8,74 @@ export default {
   theme: {
     extend: {
       colors: {
-        // New Color Palette
+        // Vibrant Tech Color Palette
         primary: {
-          50: '#f7f8fa',   // Very light charcoal
-          100: '#e8ecf1',  // Light charcoal
-          200: '#c8d4dd',  // Pale charcoal
-          300: '#99aebf',  // Light charcoal
-          400: '#6b8799',  // Medium charcoal
-          500: '#264653',  // Charcoal (base)
-          600: '#203b45',  // Dark charcoal
-          700: '#1a3037',  // Deeper charcoal
-          800: '#15262a',  // Very dark charcoal
-          900: '#101d22',  // Almost black charcoal
-          950: '#0a1317',  // Black charcoal
+          50: '#e6f0ff',   // Electric blue tint
+          100: '#cce0ff',  // Light electric
+          200: '#99c2ff',  // Soft electric
+          300: '#66a3ff',  // Medium electric
+          400: '#3385ff',  // Bright electric
+          500: '#0066ff',  // Electric Blue (base)
+          600: '#0052cc',  // Deep electric
+          700: '#003d99',  // Darker electric
+          800: '#002966',  // Navy electric
+          900: '#001433',  // Deep navy
+          950: '#000a1a',  // Midnight
         },
         secondary: {
-          50: '#fffdf7',   // Very light persian-green
-          100: '#f2f9f7',  // Light persian-green
-          200: '#e3f3ef',  // Pale persian-green
-          300: '#d3ecde',  // Light persian-green
-          400: '#a7d9bd',  // Medium persian-green
-          500: '#2a9d8f',  // Persian-green (base)
-          600: '#248077',  // Dark persian-green
-          700: '#1e645f',  // Deeper persian-green
-          800: '#184950',  // Very dark persian-green
-          900: '#12333c',  // Almost black persian-green
-          950: '#0c1e23',  // Black persian-green
+          50: '#e0fcff',   // Vivid cyan tint
+          100: '#bef8fd',  // Light cyan
+          200: '#87eaf2',  // Aqua
+          300: '#54d1db',  // Bright aqua
+          400: '#38bec9',  // Vivid cyan
+          500: '#00b4d8',  // Electric Cyan (base)
+          600: '#0096b4',  // Deep cyan
+          700: '#007a94',  // Teal
+          800: '#005e73',  // Dark teal
+          900: '#004152',  // Deep teal
+          950: '#002836',  // Midnight teal
         },
         tertiary: {
-          50: '#fffef7',   // Very light saffron
-          100: '#fdfcde',  // Light saffron
-          200: '#faf9bc',  // Pale saffron
-          300: '#f7f69b',  // Light saffron
-          400: '#f3f277',  // Medium saffron
-          500: '#e9c46a',  // Saffron (base)
-          600: '#d4a954',  // Dark saffron
-          700: '#af903f',  // Deeper saffron
-          800: '#8f7732',  // Very dark saffron
-          900: '#6e5d26',  // Almost black saffron
-          950: '#4a3f1b',  // Black saffron
+          50: '#f3e8ff',   // Vivid violet tint
+          100: '#e9d5ff',  // Light violet
+          200: '#d8b4fe',  // Soft violet
+          300: '#c084fc',  // Medium violet
+          400: '#a855f7',  // Bright violet
+          500: '#8b5cf6',  // Electric Violet (base)
+          600: '#7c3aed',  // Deep violet
+          700: '#6d28d9',  // Purple
+          800: '#5b21b6',  // Deep purple
+          900: '#4c1d95',  // Dark purple
+          950: '#2e1065',  // Midnight purple
         },
         accent: {
-          50: '#fffef6',   // Very light sandy-brown
-          100: '#fdf8df',  // Light sandy-brown
-          200: '#f9ecc5',  // Pale sandy-brown
-          300: '#f5e09a',  // Light sandy-brown
-          400: '#f1d470',  // Medium sandy-brown
-          500: '#f4a261',  // Sandy-brown (base)
-          600: '#ed8b4e',  // Dark sandy-brown
-          700: '#dc7b3e',  // Deeper sandy-brown
-          800: '#c76b30',  // Very dark sandy-brown
-          900: '#a55726',  // Almost black sandy-brown
-          950: '#783d19',  // Black sandy-brown
+          /* Unified scale based on Electric Green (#22c55e)
+           * 50-400 are progressively lighter tints, 600-950 are darker shades
+           * HSL base: hsl(142, 71%, 45%) */
+          50: '#ecfdf5',   // Very light mint
+          100: '#d1fae5',  // Light mint
+          200: '#a7f3d0',  // Pale green
+          300: '#6ee7b7',  // Soft green
+          400: '#34d399',  // Medium green
+          500: '#22c55e',  // Electric Green (base)
+          600: '#16a34a',  // Deep green
+          700: '#15803d',  // Forest
+          800: '#166534',  // Dark forest
+          900: '#14532d',  // Deep forest
+          950: '#052e16',  // Midnight green
         },
         danger: {
-          50: '#fef2f2',   // Very light burnt-sienna
-          100: '#fceaea',  // Light burnt-sienna
-          200: '#f5d4d0',  // Pale burnt-sienna
-          300: '#eebbb3',  // Light burnt-sienna
-          400: '#e6958b',  // Medium burnt-sienna
-          500: '#e76f51',  // Burnt-sienna (base)
-          600: '#d65f45',  // Dark burnt-sienna
-          700: '#b54e39',  // Deeper burnt-sienna
-          800: '#95402f',  // Very dark burnt-sienna
-          900: '#743226',  // Almost black burnt-sienna
-          950: '#4a1f19',  // Black burnt-sienna
+          50: '#fff1f2',   // Coral tint
+          100: '#ffe4e6',  // Light coral
+          200: '#fecdd3',  // Soft coral
+          300: '#fda4af',  // Medium coral
+          400: '#fb7185',  // Bright coral
+          500: '#f43f5e',  // Electric Rose (base)
+          600: '#e11d48',  // Deep rose
+          700: '#be123c',  // Ruby
+          800: '#9f1239',  // Dark ruby
+          900: '#881337',  // Deep ruby
+          950: '#4c0519',  // Midnight ruby
         },
       },
       fontFamily: {

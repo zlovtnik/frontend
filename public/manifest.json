@@ -1,11 +1,11 @@
 {
-  "name": "Actix Web REST API Frontend",
-  "short_name": "Actix Frontend",
-  "description": "TypeScript/Bun/React frontend for Actix Web REST API with JWT authentication and multi-tenant support - Natural Pharmacy Color System",
+  "name": "Nexus Platform",
+  "short_name": "Nexus",
+  "description": "Modern multi-tenant platform for managing organizations, customers, and analytics",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f8fa",
-  "theme_color": "#264653",
+  "theme_color": "#0066ff",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [

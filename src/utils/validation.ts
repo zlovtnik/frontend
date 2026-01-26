@@ -148,7 +148,7 @@ export const validatePassword = (
   // Check password strength
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
+  const hasNumber = /\d/.test(password);
 
   const missingRequirements: string[] = [];
   if (!hasUpperCase) missingRequirements.push(PASSWORD_REQUIREMENTS[0] ?? 'uppercase');
