@@ -605,12 +605,12 @@ a:hover {
 
 .stripe-row:hover,
 .ant-table-tbody > tr:hover > td {
-  background: linear-gradient(90deg, var(--primary-100) 0%, var(--accent-50) 100%) !important;
-  box-shadow: 0 4px 12px var(--primary-shadow-color-light);
+  background: var(--primary-100) !important;
+  box-shadow: 0 2px 8px var(--primary-shadow-color-light);
 }
 
 .ant-table-tbody > tr:hover {
-  background: linear-gradient(90deg, var(--primary-100) 0%, var(--accent-50) 100%) !important;
+  background: var(--primary-100) !important;
 }
 
 /* Enhanced Nexus Table Header */
