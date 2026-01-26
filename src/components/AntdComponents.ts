@@ -63,4 +63,7 @@ export {
   MailOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
+  DatabaseOutlined,
+  ArrowLeftOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';

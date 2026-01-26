@@ -263,37 +263,89 @@ export const TenantsPage: React.FC = () => {
   // Table columns for tenants display
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 200,
-      ellipsis: true,
-    },
-    {
-      title: 'Name',
+      title: 'Tenant',
       dataIndex: 'name',
       key: 'name',
       sorter: (a: TenantRecord, b: TenantRecord) => a.name.localeCompare(b.name),
+      render: (name: string, record: TenantRecord) => (
+        <div>
+          <div style={{ fontWeight: 500, color: '#262626', marginBottom: 2 }}>{name}</div>
+          <div
+            style={{
+              fontSize: 12,
+              color: '#8c8c8c',
+              fontFamily: 'monospace',
+              maxWidth: 180,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+            title={record.id}
+          >
+            {record.id}
+          </div>
+        </div>
+      ),
     },
     {
-      title: 'Database URL',
+      title: 'Database',
       dataIndex: 'db_url',
       key: 'db_url',
-      width: 250,
-      ellipsis: true,
+      width: 280,
       render: (dbUrl: string) => {
         const masked = formatDbUrl(dbUrl);
+
+        // Detect database type from URL (case-insensitive)
+        const getDbType = (url: string): string => {
+          const lower = url.toLowerCase();
+          if (lower.includes('oracle')) return 'Oracle';
+          if (lower.includes('postgres')) return 'PostgreSQL';
+          if (lower.includes('mysql')) return 'MySQL';
+          return 'Database';
+        };
+
+        const getTypeColor = (type: string): string => {
+          const colors: Record<string, string> = {
+            Oracle: '#f5222d',
+            PostgreSQL: '#1890ff',
+            MySQL: '#fa8c16',
+          };
+          return colors[type] || '#8c8c8c';
+        };
+
+        const dbType = getDbType(dbUrl);
+        const typeColor = getTypeColor(dbType);
+
         return (
-          <span
-            title={masked}
-            style={{
-              fontSize: '12px',
-              color: 'var(--tertiary-600)',
-              fontFamily: 'monospace',
-            }}
-          >
-            {masked.length > 30 ? masked.substring(0, 27) + '...' : masked}
-          </span>
+          <div>
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '2px 8px',
+                background: `${typeColor}15`,
+                color: typeColor,
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 500,
+                marginBottom: 4,
+              }}
+            >
+              {dbType}
+            </span>
+            <div
+              style={{
+                fontSize: 12,
+                color: '#595959',
+                fontFamily: 'monospace',
+                maxWidth: 240,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={masked}
+            >
+              {masked}
+            </div>
+          </div>
         );
       },
     },
@@ -301,38 +353,34 @@ export const TenantsPage: React.FC = () => {
       title: 'Created',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date: string) => formatDate(date),
+      width: 140,
+      render: (date: string) => (
+        <span style={{ color: '#595959', fontSize: 13 }}>{formatDate(date)}</span>
+      ),
       sorter: (a: TenantRecord, b: TenantRecord) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     },
     {
-      title: 'Updated',
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      render: (date: string) => formatDate(date),
-      sorter: (a: TenantRecord, b: TenantRecord) =>
-        new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime(),
-    },
-    {
-      title: 'Actions',
+      title: '',
       key: 'actions',
-      width: 100,
+      width: 80,
       render: (_: unknown, tenant: TenantRecord) => (
-        <Space size="small">
+        <Space size={4}>
           <Button
             type="text"
             size="small"
             icon={<EditOutlined />}
-            onClick={() => {
-              handleEdit(tenant);
-            }}
+            onClick={() => handleEdit(tenant)}
             style={{
-              color: '#1890ff',
+              color: '#595959',
+              width: 32,
+              height: 32,
+              borderRadius: 6,
             }}
           />
           <Popconfirm
             title="Delete Tenant"
-            description="Are you sure you want to delete this tenant? This action cannot be undone."
+            description="This action cannot be undone."
             onConfirm={() => handleDelete(tenant.id)}
             okText="Delete"
             cancelText="Cancel"
@@ -340,9 +388,14 @@ export const TenantsPage: React.FC = () => {
           >
             <Button
               type="text"
-              danger
               size="small"
               icon={<DeleteOutlined />}
+              style={{
+                color: '#8c8c8c',
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+              }}
             />
           </Popconfirm>
         </Space>
@@ -354,32 +407,16 @@ export const TenantsPage: React.FC = () => {
   const renderContent = () => {
     if (loading) {
       return (
-        <Card>
-          <Skeleton active paragraph={{ rows: 4 }} />
-        </Card>
-      );
-    }
-
-    if (tenants.length === 0) {
-      return (
-        <Card>
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Typography.Title level={4}>No Tenants Found</Typography.Title>
-            <Typography.Text type="secondary">
-              Create your first tenant to get started.
-            </Typography.Text>
-            <Button type="primary" onClick={handleNewTenant} style={{ marginTop: 16 }}>
-              Create Tenant
-            </Button>
-          </div>
+        <Card style={{ borderRadius: 12, border: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+          <Skeleton active paragraph={{ rows: 6 }} />
         </Card>
       );
     }
 
     return (
       <>
-        {/* Dynamic Filter */}
-        <div style={{ marginTop: 16 }} data-testid="search-filters-card">
+        {/* Dynamic Filter - Always visible */}
+        <div data-testid="search-filters-card">
           <DynamicFilter
             fields={TENANT_FILTER_FIELDS}
             onApply={handleFilterApply}
@@ -390,25 +427,116 @@ export const TenantsPage: React.FC = () => {
 
         {/* Tenants Table */}
         <Card
-          title={`Tenants (${tenants.length})`}
-          style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+          style={{
+            borderRadius: 12,
+            border: 'none',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            marginTop: 16,
+          }}
+          styles={{
+            header: {
+              borderBottom: '1px solid #f0f0f0',
+              padding: '16px 24px',
+            },
+            body: {
+              padding: 0,
+            },
+          }}
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontWeight: 600, fontSize: 16 }}>Tenants</span>
+              <span
+                style={{
+                  background: '#f0f5ff',
+                  color: '#1890ff',
+                  padding: '2px 10px',
+                  borderRadius: 12,
+                  fontSize: 13,
+                  fontWeight: 500,
+                }}
+              >
+                {pagination.total}
+              </span>
+            </div>
+          }
         >
-          <Table
-            columns={columns}
-            dataSource={tenants}
-            rowKey="id"
-            loading={loading}
-            rowClassName={(_record, index) => (index % 2 === 0 ? 'stripe-row' : '')}
-            pagination={tablePagination}
-            data-testid="tenants-table"
-            locale={{ emptyText: 'No tenants match your search.' }}
-            style={{
-              border: '1px solid #e8e8e8',
-              borderRadius: '8px',
-              overflow: 'hidden',
-            }}
-          />
+          {tenants.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '48px 24px',
+                background: '#fafafa',
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 16,
+                  background: 'linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}
+              >
+                <PlusOutlined style={{ fontSize: 28, color: '#1890ff' }} />
+              </div>
+              <Typography.Title level={4} style={{ marginBottom: 8, color: '#262626' }}>
+                No tenants yet
+              </Typography.Title>
+              <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 20 }}>
+                {currentApiFilters && currentApiFilters.length > 0
+                  ? 'No tenants match your filter criteria. Try adjusting your filters.'
+                  : 'Get started by creating your first tenant.'}
+              </Typography.Text>
+              {!(currentApiFilters && currentApiFilters.length > 0) && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleNewTenant}>
+                  Create First Tenant
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={tenants}
+              rowKey="id"
+              loading={filterLoading}
+              pagination={{
+                ...tablePagination,
+                style: { padding: '12px 24px', margin: 0 },
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} tenants`,
+              }}
+              data-testid="tenants-table"
+              style={{ overflow: 'hidden' }}
+              rowClassName={() => 'tenant-table-row'}
+            />
+          )}
         </Card>
+
+        <style>{`
+          .tenant-table-row:hover {
+            background: #fafafa !important;
+          }
+          .tenant-table-row td {
+            padding: 16px 24px !important;
+            border-bottom: 1px solid #f5f5f5 !important;
+          }
+          .ant-table-thead > tr > th {
+            background: #fafafa !important;
+            font-weight: 600 !important;
+            color: #595959 !important;
+            font-size: 13px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            padding: 14px 24px !important;
+            border-bottom: 1px solid #f0f0f0 !important;
+          }
+          .ant-table-tbody > tr > td {
+            transition: background 0.2s ease !important;
+          }
+        `}</style>
       </>
     );
   };
