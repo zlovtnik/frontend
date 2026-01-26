@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import type { Tenant as TenantRecord, CreateTenantDTO } from '@/types/tenant';
+import type { Tenant as TenantRecord } from '@/types/tenant';
 import { isApiSuccess } from '@/types/api';
 import {
   Button,
   Input,
   Card,
   Table,
-  Modal,
-  Form,
   Space,
   Typography,
   Divider,
@@ -18,10 +17,7 @@ import {
   AntdApp,
   DatePicker,
   Spin,
-  Statistic,
-  List,
-  Avatar,
-  Tag,
+  Skeleton,
 } from '@/components/AntdComponents';
 import {
   PlusOutlined,
@@ -31,12 +27,6 @@ import {
   MinusCircleOutlined,
 } from '@/components/AntdComponents';
 import { tenantService } from '@/services/api';
-import { isValidPostgresConnectionString } from '@/validation/schemas';
-
-/**
- * Form values for tenant creation (excluding id which is auto-generated)
- */
-type TenantFormValues = Omit<CreateTenantDTO, 'id'>;
 
 // Field type constants to avoid duplication
 const TEXT_FIELDS = ['id', 'name', 'db_url'] as const;
@@ -51,19 +41,27 @@ const operatorLabels: Record<string, string> = {
   lte: 'Less or Equal',
 };
 
+// Power filter type with stable unique id
+type PowerFilter = {
+  id: string;
+  field: string;
+  operator: string;
+  value: string;
+};
+
+// Generate unique filter ID
+const generateFilterId = (): string => `filter-${crypto.randomUUID().slice(0, 8)}`;
+
 export const TenantsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [tenants, setTenants] = useState<TenantRecord[]>([]);
   const { message } = AntdApp.useApp();
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingTenant, setEditingTenant] = useState<TenantRecord | null>(null);
   const [deleteTenantId, setDeleteTenantId] = useState<TenantRecord['id'] | null>(null);
-  const [form] = Form.useForm<TenantFormValues>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [powerFilters, setPowerFilters] = useState<
-    { field: string; operator: string; value: string }[]
-  >([{ field: 'name', operator: 'contains', value: '' }]);
+  const [loading, setLoading] = useState(true);
+  const [powerFilters, setPowerFilters] = useState<PowerFilter[]>([
+    { id: generateFilterId(), field: 'name', operator: 'contains', value: '' },
+  ]);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 12,
@@ -71,7 +69,7 @@ export const TenantsPage: React.FC = () => {
   });
 
   // Load tenants from API with pagination
-  const loadTenants = async (params?: { offset?: number; limit?: number }) => {
+  const loadTenants = useCallback(async (params?: { offset?: number; limit?: number }) => {
     try {
       setLoading(true);
       const result = await tenantService.getAllWithPagination(params);
@@ -90,16 +88,18 @@ export const TenantsPage: React.FC = () => {
       // instead of { status: "success", data: {...}, message: "ok" }
       const isSuccess =
         isApiSuccess(apiResponse) ||
-        (apiResponse.message === 'ok' && apiResponse.data !== undefined);
+        (apiResponse.message === 'ok' && 'data' in apiResponse && apiResponse.data !== undefined);
 
       if (!isSuccess) {
-        message.error(apiResponse.error?.message || 'Failed to load tenants');
+        const errorMessage = 'error' in apiResponse ? apiResponse.error?.message : undefined;
+        message.error(errorMessage || 'Failed to load tenants');
         setTenants([]);
         setPagination(prev => ({ ...prev, total: 0 }));
         return;
       }
 
-      const data = apiResponse.data;
+      // Type assertion is safe here because isSuccess guarantees data exists
+      const data = (apiResponse as { data: { data: TenantRecord[]; total: number } }).data;
       setTenants(data.data);
       setPagination(prev => ({ ...prev, total: data.total }));
     } catch (error) {
@@ -109,12 +109,12 @@ export const TenantsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [message]);
 
   // Load tenants on component mount
   useEffect(() => {
     loadTenants({ offset: 0, limit: pagination.pageSize });
-  }, []);
+  }, [loadTenants, pagination.pageSize]);
 
   // Handle pagination changes (page size and page number)
   const handlePaginationChange = async (page: number, pageSize: number) => {
@@ -135,81 +135,9 @@ export const TenantsPage: React.FC = () => {
     showQuickJumper: false,
   };
 
-  /**
-   * Handle form submission for creating or updating a tenant
-   * @param values - Form values from Ant Design Form (without id)
-   */
-  const handleSubmit = async (values: TenantFormValues) => {
-    setIsSubmitting(true);
-
-    try {
-      if (editingTenant) {
-        // Update existing tenant - omit db_url if empty to keep it optional
-        const updateResult = await tenantService.update(editingTenant.id, {
-          name: values.name,
-          ...(values.db_url && { db_url: values.db_url }),
-        });
-        if (updateResult.isErr()) {
-          throw new Error(updateResult.error.message);
-        }
-
-        if (!isApiSuccess(updateResult.value)) {
-          throw new Error(updateResult.value.error?.message || 'Failed to update tenant');
-        }
-        // Refresh the current page
-        await loadTenants({
-          offset: (pagination.current - 1) * pagination.pageSize,
-          limit: pagination.pageSize,
-        });
-      } else {
-        // Create new tenant with cryptographically secure UUID
-        const createResult = await tenantService.create({
-          id: crypto.randomUUID(),
-          name: values.name,
-          db_url: values.db_url,
-        });
-
-        if (createResult.isErr()) {
-          throw new Error(createResult.error.message);
-        }
-
-        if (!isApiSuccess(createResult.value)) {
-          throw new Error(createResult.value.error?.message || 'Failed to create tenant');
-        }
-        // Refresh the current page
-        await loadTenants({
-          offset: (pagination.current - 1) * pagination.pageSize,
-          limit: pagination.pageSize,
-        });
-      }
-
-      // Success message
-      const successMsg = editingTenant
-        ? 'Tenant updated successfully!'
-        : 'Tenant created successfully!';
-      message.success(successMsg);
-
-      // Reset form and close modal on success
-      setEditingTenant(null);
-      setIsFormOpen(false);
-      form.resetFields();
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : 'An error occurred while saving the tenant.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle edit
+  // Handle edit - navigate to edit page
   const handleEdit = (tenant: TenantRecord) => {
-    setEditingTenant(tenant);
-    form.setFieldsValue({
-      name: tenant.name,
-      db_url: tenant.db_url,
-    });
-    setIsFormOpen(true);
+    navigate(`/tenants/${tenant.id}/edit`);
   };
 
   // Handle delete - open confirmation modal
@@ -248,16 +176,17 @@ export const TenantsPage: React.FC = () => {
     setDeleteTenantId(null);
   };
 
-  // Open form for new tenant
+  // Open form for new tenant - navigate to create page
   const handleNewTenant = () => {
-    setEditingTenant(null);
-    form.resetFields();
-    setIsFormOpen(true);
+    navigate('/tenants/new');
   };
 
   // Power search functions
   const addFilter = () => {
-    setPowerFilters([...powerFilters, { field: 'name', operator: 'contains', value: '' }]);
+    setPowerFilters([
+      ...powerFilters,
+      { id: generateFilterId(), field: 'name', operator: 'contains', value: '' },
+    ]);
   };
 
   const removeFilter = (index: number) => {
@@ -319,19 +248,21 @@ export const TenantsPage: React.FC = () => {
 
       // If current operator is not valid for the new field, reset to first valid operator
       if (!validOperators.includes(currentOperator)) {
-        updated[index] = Object.assign({}, currentFilter, {
+        updated[index] = {
+          ...currentFilter,
           [key]: value,
-          operator: validOperators[0],
+          operator: validOperators[0] ?? 'contains',
           value: shouldClearValue ? '' : currentFilter.value,
-        });
+        };
       } else {
-        updated[index] = Object.assign({}, currentFilter, {
+        updated[index] = {
+          ...currentFilter,
           [key]: value,
           value: shouldClearValue ? '' : currentFilter.value,
-        });
+        };
       }
     } else {
-      updated[index] = Object.assign({}, currentFilter, { [key]: value });
+      updated[index] = { ...currentFilter, [key]: value };
     }
 
     setPowerFilters(updated);
@@ -349,17 +280,16 @@ export const TenantsPage: React.FC = () => {
       }
 
       // Validate date fields before sending
+      // Note: DatePicker already provides ISO strings, so we only validate format
       const validatedFilters = validFilters.map(filter => {
         if (isDateField(filter.field)) {
-          // Validate date format for date fields
+          // Just validate that the value is a valid date string
           const dateValue = new Date(filter.value);
           if (isNaN(dateValue.getTime())) {
             throw new Error(`Invalid date format for field ${filter.field}: ${filter.value}`);
           }
-          return {
-            ...filter,
-            value: dateValue.toISOString(),
-          };
+          // Return filter as-is since DatePicker already provides ISO format
+          return filter;
         }
         return filter;
       });
@@ -402,7 +332,7 @@ export const TenantsPage: React.FC = () => {
   };
 
   const clearFilters = async () => {
-    setPowerFilters([{ field: 'name', operator: 'contains', value: '' }]);
+    setPowerFilters([{ id: generateFilterId(), field: 'name', operator: 'contains', value: '' }]);
     setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page
     await loadTenants({ offset: 0, limit: pagination.pageSize });
   };
@@ -518,10 +448,27 @@ export const TenantsPage: React.FC = () => {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '48px' }}>
-          <Spin />
+      {/* Header - always visible */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            Tenants
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            Manage tenant configurations and database connections
+          </Typography.Text>
         </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleNewTenant}>
+          Add Tenant
+        </Button>
+      </div>
+
+      <Divider />
+
+      {loading ? (
+        <Card>
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </Card>
       ) : tenants.length === 0 ? (
         <Card>
           <div style={{ textAlign: 'center', padding: 48 }}>
@@ -536,23 +483,6 @@ export const TenantsPage: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <Typography.Title level={2} style={{ margin: 0 }}>
-                Tenants
-              </Typography.Title>
-              <Typography.Text type="secondary">
-                Manage tenant configurations and database connections
-              </Typography.Text>
-            </div>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleNewTenant}>
-              Add Tenant
-            </Button>
-          </div>
-
-          <Divider />
-
           {/* Search Filters */}
           <Card
             title="Search Filters"
@@ -563,7 +493,7 @@ export const TenantsPage: React.FC = () => {
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               {powerFilters.map((filter, index) => (
                 <div
-                  key={index}
+                  key={filter.id}
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}
                   data-testid={`filter-row-${index}`}
                 >
@@ -704,58 +634,6 @@ export const TenantsPage: React.FC = () => {
           </Card>
         </>
       )}
-
-      {/* Tenant Form Modal */}
-      <Modal
-        title={editingTenant ? 'Edit Tenant' : 'Add New Tenant'}
-        open={isFormOpen}
-        onCancel={() => {
-          setIsFormOpen(false);
-        }}
-        footer={null}
-      >
-        <Form
-          form={form}
-          onFinish={handleSubmit}
-          layout="vertical"
-          initialValues={{
-            name: '',
-            db_url: '',
-          }}
-        >
-          <Form.Item
-            name="name"
-            label="Tenant Name"
-            rules={[{ required: true, message: 'Please enter tenant name' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="db_url"
-            label="Database URL"
-            rules={[
-              {
-                validator: (_rule, value) => {
-                  if (!value)
-                    return editingTenant
-                      ? Promise.resolve()
-                      : Promise.reject(new Error('Please enter database URL'));
-                  return isValidPostgresConnectionString(value)
-                    ? Promise.resolve()
-                    : Promise.reject(new Error('Invalid PostgreSQL connection string'));
-                },
-              },
-            ]}
-          >
-            <Input placeholder="postgres://localhost:5432/mydb or key=value format" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={isSubmitting}>
-              {editingTenant ? 'Update' : 'Add'} Tenant
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
     </Space>
   );
 };

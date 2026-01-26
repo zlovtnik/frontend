@@ -18,7 +18,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   MenuOutlined,
-  HeartOutlined,
+  ApiOutlined,
   DatabaseOutlined,
 } from '@ant-design/icons';
 
@@ -40,10 +40,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const layoutStyles = {
     siderHeader: {
       height: 64,
-      padding: token.paddingMD,
-      textAlign: 'center' as const,
+      padding: `${token.paddingSM}px ${token.paddingMD}px`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: token.paddingSM,
       color: token.colorTextLightSolid,
       background: `linear-gradient(135deg, ${token.colorPrimary} 0%, ${token.colorPrimaryHover} 100%)`,
+      overflow: 'hidden',
     },
     sider: {
       background: `linear-gradient(135deg, ${token.colorPrimaryHover} 0%, ${token.colorPrimaryActive} 100%)`,
@@ -137,8 +140,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         style={layoutStyles.sider}
       >
         <div style={layoutStyles.siderHeader}>
-          <HeartOutlined style={{ fontSize: 32 }} />
-          <div>{tenant?.name || 'Nexus'}</div>
+          <ApiOutlined style={{ fontSize: 24, flexShrink: 0 }} />
+          {!collapsed && (
+            <span
+              style={{
+                fontSize: token.fontSizeLG,
+                fontWeight: token.fontWeightStrong ?? 600,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {tenant?.name || 'Nexus'}
+            </span>
+          )}
         </div>
         <Menu
           theme="dark"

@@ -23,6 +23,9 @@ const AddressBookPage = lazy(() =>
 const TenantsPage = lazy(() =>
   import('./pages/TenantsPage').then(module => ({ default: module.TenantsPage }))
 );
+const TenantFormPage = lazy(() =>
+  import('./pages/TenantFormPage').then(module => ({ default: module.TenantFormPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then(module => ({ default: module.NotFoundPage }))
 );
@@ -34,6 +37,15 @@ const PasswordResetPage = lazy(() =>
 );
 const OAuthCallbackPage = lazy(() =>
   import('./pages/OAuthCallbackPage').then(module => ({ default: module.OAuthCallbackPage }))
+);
+
+/** Reusable wrapper for authenticated routes with Layout and Suspense */
+const PrivateLayoutRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <PrivateRoute>
+    <Layout>
+      <Suspense fallback={<PageSkeleton variant="default" />}>{children}</Suspense>
+    </Layout>
+  </PrivateRoute>
 );
 
 // Validate environment configuration at module load time
@@ -98,6 +110,22 @@ export const App: React.FC = () => {
                       </Suspense>
                     </Layout>
                   </PrivateRoute>
+                }
+              />
+              <Route
+                path="/tenants/new"
+                element={
+                  <PrivateLayoutRoute>
+                    <TenantFormPage />
+                  </PrivateLayoutRoute>
+                }
+              />
+              <Route
+                path="/tenants/:id/edit"
+                element={
+                  <PrivateLayoutRoute>
+                    <TenantFormPage />
+                  </PrivateLayoutRoute>
                 }
               />
               <Route path="*" element={<NotFoundPage />} />
