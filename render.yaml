@@ -1,7 +1,6 @@
 services:
   - type: web
     name: frontend
-    env: static
     buildCommand: bun install && bun run build
     staticPublishPath: ./dist
     routes:
